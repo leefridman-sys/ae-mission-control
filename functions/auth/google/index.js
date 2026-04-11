@@ -2,7 +2,7 @@
 export async function onRequest(context) {
   const { env, request } = context;
   const url = new URL(request.url);
-  const redirectUri = `${url.origin}/auth/google/callback`;
+  const redirectUri = `https://ae-mission-control.pages.dev/auth/google/callback`;
   const scope = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.compose',
