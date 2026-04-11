@@ -135,7 +135,8 @@ export async function onRequest(context) {
           date: dateISO, meetingLink, calendarLink: ev.htmlLink || null,
           description: desc || null,
           location: ev.location && !ev.location.match(/^https?:\/\//) ? ev.location : null,
-          attachments, colorId: evColorId
+          attachments, colorId: evColorId,
+          attendees: (ev.attendees || []).map(a => ({ email: a.email||'', displayName: a.displayName||'', self: !!a.self, responseStatus: a.responseStatus||'' }))
         };
       });
 
