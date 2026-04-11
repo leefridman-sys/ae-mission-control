@@ -104,6 +104,7 @@ export async function onRequest(context) {
         const duration = diffMins < 60 ? diffMins + ' min' : (diffMins % 60 === 0 ? diffMins/60 + ' hr' : Math.floor(diffMins/60) + 'h ' + (diffMins%60) + 'm');
 
         const dateStr = localStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+        const dateISO = `${localStart.getUTCFullYear()}-${String(localStart.getUTCMonth()+1).padStart(2,'0')}-${String(localStart.getUTCDate()).padStart(2,'0')}`;
 
         let meetingLink = null;
         if (ev.conferenceData?.entryPoints) {
@@ -131,7 +132,7 @@ export async function onRequest(context) {
           gid: ev.id,
           title: ev.summary || '(No title)',
           time, duration, dateStr, type, isPersonal, isAllDay, hasMeeting,
-          meetingLink, calendarLink: ev.htmlLink || null,
+          date: dateISO, meetingLink, calendarLink: ev.htmlLink || null,
           description: desc || null,
           location: ev.location && !ev.location.match(/^https?:\/\//) ? ev.location : null,
           attachments, colorId: evColorId
