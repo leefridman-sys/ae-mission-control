@@ -48,7 +48,7 @@ export async function onRequest(context) {
     }
 
     const rt = encodeURIComponent(tokenData.refresh_token);
-    return Response.redirect(`/?google_rt=${rt}`, 302);
+    return Response.redirect(`https://ae-mission-control.pages.dev/?google_rt=${rt}`, 302);
 
   } catch(err) {
     return new Response(`<html><body><script>
