@@ -12,7 +12,7 @@ export async function onRequest(context) {
     </script></body></html>`, { headers: { 'Content-Type': 'text/html' } });
   }
 
-  const redirectUri = `${url.origin}/auth/google/callback`;
+  const redirectUri = `https://ae-mission-control.pages.dev/auth/google/callback`;
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
