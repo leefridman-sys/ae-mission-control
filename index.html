@@ -290,7 +290,6 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
     <button class="nav-tab active" data-tab="overview">Overview</button>
     <button class="nav-tab" data-tab="pipeline">Pipeline <span class="conn-dot off" id="dot-sf"></span></button>
     <button class="nav-tab" data-tab="meetings">Meetings <span class="conn-dot off" id="dot-gc"></span></button>
-    <button class="nav-tab" data-tab="inbox">Inbox <span class="conn-dot off" id="dot-inbox"></span></button>
     <button class="nav-tab" data-tab="prospecting">Outbound</button>
     <button class="nav-tab" data-tab="gong">Gong <span class="conn-dot off" id="dot-gong"></span></button>
   </div>
@@ -319,8 +318,6 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 <!-- MEETINGS -->
 <div class="panel" id="panel-meetings"></div>
 
-<!-- INBOX -->
-<div class="panel" id="panel-inbox"></div>
 
 <!-- PROSPECTING -->
 <div class="panel" id="panel-prospecting"></div>
@@ -403,7 +400,6 @@ function loadTab(id){
   if(id==='overview')loadOverview();
   else if(id==='pipeline')loadPipeline();
   else if(id==='meetings')loadMeetings();
-  else if(id==='inbox')loadInbox();
   else if(id==='prospecting')loadProspecting();
   else if(id==='gong')loadGong();
 }
