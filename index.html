@@ -176,10 +176,10 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 .meet-drawer-ov.open{display:block;}
 /* Outbound account tracker */
 .ob-table{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--card);}
-.ob-row{display:grid;grid-template-columns:26px 1fr 72px 90px 100px 1fr 28px;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;gap:.75rem;}
+.ob-row{display:grid;grid-template-columns:26px 1fr 72px 52px 90px 100px 1fr 28px;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;gap:.75rem;}
 .ob-row:last-child{border-bottom:none;}
 .ob-row:hover{background:var(--bg);}
-.ob-hdr{display:grid;grid-template-columns:26px 1fr 72px 90px 100px 1fr 28px;gap:.75rem;padding:.45rem 1rem;background:var(--bg);border-bottom:2px solid var(--border);font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.ob-hdr{display:grid;grid-template-columns:26px 1fr 72px 52px 90px 100px 1fr 28px;gap:.75rem;padding:.45rem 1rem;background:var(--bg);border-bottom:2px solid var(--border);font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
 .ob-tier-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .ob-tier-badge.t1{background:#ffecd6;color:#c55a00;}
 .ob-tier-badge.t2{background:#e8f0ff;color:#1d4ed8;}
@@ -2039,7 +2039,7 @@ function renderObTable(){
   accounts.sort(function(a,b){return a.tier-b.tier||a.name.localeCompare(b.name);});
   if(!accounts.length){el.innerHTML='<div class="empty-dashed"><div class="empty-title">No accounts in this tier</div></div>';return;}
   el.innerHTML='<div class="ob-table">'+
-    '<div class="ob-hdr"><div></div><div>Account</div><div>Seq</div><div>Status</div><div>Last Touch</div><div>Next Action</div><div></div></div>'+
+    '<div class="ob-hdr"><div></div><div>Account</div><div>Seq</div><div>Contacts</div><div>Status</div><div>Last Touch</div><div>Next Action</div><div></div></div>'+
     accounts.map(function(a){
       var lastT=a.lastTouched?timeSince(a.lastTouched):'Never';
       var nextSeq=getAccountNextAction(a);
@@ -2059,6 +2059,10 @@ function renderObTable(){
           (a.closedLostHistory?'<div style="font-size:13px;color:var(--muted);margin-top:1px">'+esc(a.closedLostHistory)+'</div>':'')+
         '</div>'+
         '<div><span class="ob-seq-badge">'+(a.sequenceTemplate?a.sequenceTemplate:'—')+'</span></div>'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:16px;font-weight:600;color:var(--accent2)">'+(a.contacts&&a.contacts.length||0)+'</div>'+
+          '<div style="font-size:11px;color:var(--muted)">'+(a.contacts&&a.contacts.length===1?'person':'people')+'</div>'+
+        '</div>'+
         '<div><span class="ob-status-pill '+a.status+'">'+a.status+'</span></div>'+
         '<div style="font-size:14px;color:var(--muted)">'+lastT+'</div>'+
         '<div class="ob-next-action-cell" style="min-width:0;overflow:hidden" onclick="event.stopPropagation()">'+
