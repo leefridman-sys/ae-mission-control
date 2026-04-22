@@ -175,6 +175,54 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ opps, contacts }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
     }
 
+    if (action === 'events_upcoming') {
+      // Fetch Events for today + tomorrow linked to a Contact (WhoId != null = prospect-facing, not internal)
+      const soql = encodeURIComponent(
+        `SELECT Id, Subject, StartDateTime, EndDateTime, WhoId, Who.Name, WhatId, What.Name, What.Type, Description, Location
+         FROM Event
+         WHERE OwnerId = '${userId}'
+         AND StartDateTime >= TODAY
+         AND StartDateTime <= NEXT_N_DAYS:2
+         AND WhoId != null
+         ORDER BY StartDateTime ASC
+         LIMIT 20`
+      );
+      const res = await fetch(`${apiBase}/query/?q=${soql}`, { headers: h });
+      const data = await res.json();
+      const errObj = Array.isArray(data) ? data[0] : data;
+      if (errObj && errObj.errorCode) return new Response(JSON.stringify({ error: errObj.message || errObj.errorCode }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+      const events = (data.records || []).map(ev => {
+        const start = ev.StartDateTime ? new Date(ev.StartDateTime) : null;
+        const end   = ev.EndDateTime   ? new Date(ev.EndDateTime)   : null;
+        const dateStr = start ? start.toISOString().slice(0, 10) : '';
+        const timeStr = start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto' }) : '';
+        const durMins = (start && end) ? Math.round((end - start) / 60000) : null;
+        const durStr  = durMins ? (durMins >= 60 ? Math.floor(durMins / 60) + 'h' + (durMins % 60 ? ' ' + (durMins % 60) + 'm' : '') : durMins + 'm') : '';
+        const isToday = dateStr === todayStr;
+        const isTomorrow = dateStr === tomorrowStr;
+        return {
+          id: ev.Id,
+          subject: ev.Subject || '',
+          date: dateStr,
+          time: timeStr,
+          startTs: start ? start.getTime() : 0,
+          duration: durStr,
+          isToday,
+          isTomorrow,
+          whoName: ev.Who ? ev.Who.Name : '',
+          whatName: ev.What ? ev.What.Name : '',
+          whatType: ev.What ? ev.What.Type : '',
+          description: ev.Description || ''
+        };
+      });
+
+      return new Response(JSON.stringify({ events }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+    }
+
     if (action === 'tasks_week') {
       const soql = encodeURIComponent(
         `SELECT Id, Subject, Type, Status, ActivityDate, WhatId, What.Name, WhoId, Who.Name

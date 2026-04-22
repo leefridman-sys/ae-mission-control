@@ -774,6 +774,33 @@ function loadOverview(){
       }).join('')
     :'<div style="font-size:15px;color:var(--muted)">All accounts touched in the last 7 days ✓</div>';
 
+  // ── COACHING TIPS (synchronous) ──
+  var todayCompleted=stats.all.filter(function(t){return t.date===todayStr;});
+  var pstHour=pst.getHours();
+  var coachHtml='';
+  var coachItems=[];
+  if(todayCompleted.length===0&&pstHour>=9){
+    coachItems.push(
+      '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(228,97,54,.07);border:1px solid rgba(228,97,54,.2);margin-bottom:8px">'+
+        '<span style="font-size:20px;flex-shrink:0">📤</span>'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:600;font-size:14px;color:var(--orange,#e46136)">No outbound touches logged yet today</div>'+
+          '<div style="font-size:13px;color:var(--muted);margin-top:2px">Add prospects to your sequences and get the first touch of the day in.</div>'+
+        '</div>'+
+        '<button class="btn-ghost btn-sm" onclick="switchTo(\'prospecting\')" style="font-size:13px;flex-shrink:0">Go →</button>'+
+      '</div>'
+    );
+  }
+  // Meeting prep tips populated async after SF events load — placeholder injected here
+  coachItems.push('<div id="ov-coach-meetings"></div>');
+  if(coachItems.length){
+    coachHtml=
+      '<div class="card" style="margin-bottom:1.25rem">'+
+        '<div style="font-size:16px;font-weight:500;margin-bottom:.75rem">💡 Coaching</div>'+
+        coachItems.join('')+
+      '</div>';
+  }
+
   el.innerHTML=
     '<div style="margin-bottom:1.5rem;display:flex;align-items:baseline;justify-content:space-between">'+
       '<div>'+
@@ -782,7 +809,17 @@ function loadOverview(){
       '</div>'+
     '</div>'+
 
-    // ── NEXT MEETING ──
+    // ── UPCOMING CALLS (async, from SF) ──
+    '<div id="ov-upcoming-calls" style="margin-bottom:1.25rem">'+
+      (getSFInst()?
+        '<div class="card" style="opacity:.55">'+
+          '<div style="font-size:16px;font-weight:500;margin-bottom:.5rem">📅 Upcoming calls</div>'+
+          '<div style="font-size:14px;color:var(--muted)">Loading from Salesforce…</div>'+
+        '</div>'
+      :'')+ // hide if SF not connected
+    '</div>'+
+
+    // ── NEXT MEETING (Google Cal) ──
     '<div id="ov-next-meeting" style="margin-bottom:1.25rem"></div>'+
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">'+
@@ -821,6 +858,9 @@ function loadOverview(){
 
     '</div>'+ // end 2-col grid
 
+    // ── COACHING ──
+    coachHtml+
+
     // ── ACCOUNTS NEEDING ATTENTION ──
     '<div class="card" style="margin-bottom:1.25rem">'+
       '<div style="font-size:16px;font-weight:500;margin-bottom:.85rem">Accounts needing attention <span style="font-size:13px;color:var(--muted);font-weight:400">· no touch in 7+ days</span></div>'+
@@ -833,6 +873,84 @@ function loadOverview(){
       '<button class="btn-ghost" onclick="switchTo(\'tools\')" style="font-size:15px">✦ Opp Brief Builder</button>'+
       '<button class="btn-ghost" onclick="switchTo(\'pipeline\')" style="font-size:15px">View Pipeline</button>'+
     '</div>';
+
+  // ── Load upcoming prospect calls from Salesforce ──
+  if(getSFInst()){
+    fetch('/api/salesforce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sfCreds('events_upcoming'))})
+    .then(function(r){return r.json();}).then(function(data){
+      var container=document.getElementById('ov-upcoming-calls');
+      if(!container)return;
+      if(data.error||!data.events){container.innerHTML='';return;}
+      var events=data.events||[];
+      if(!events.length){container.innerHTML='';return;}
+
+      // Group by today / tomorrow
+      var todayEvts=events.filter(function(e){return e.isToday;});
+      var tmrwEvts=events.filter(function(e){return e.isTomorrow;});
+
+      function evCard(ev){
+        var badge=ev.whatType==='Opportunity'
+          ?'<span style="font-size:11px;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-weight:600">Opp</span>'
+          :'<span style="font-size:11px;background:var(--bg);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:1px 7px;">Lead</span>';
+        return'<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:6px">'+
+          '<div style="flex-shrink:0;text-align:center;min-width:52px">'+
+            '<div style="font-size:15px;font-weight:600;color:var(--accent2)">'+esc(ev.time)+'</div>'+
+            (ev.duration?'<div style="font-size:11px;color:var(--muted)">'+esc(ev.duration)+'</div>':'')+
+          '</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(ev.subject)+'</div>'+
+            '<div style="font-size:13px;color:var(--muted);margin-top:1px">'+
+              esc(ev.whoName)+(ev.whatName?' · '+esc(ev.whatName):'')+
+            '</div>'+
+          '</div>'+
+          badge+
+          '<button class="btn-ghost btn-sm" onclick="switchTo(\'tools\')" title="Prep in Opp Brief Builder" style="font-size:13px;flex-shrink:0">🗒 Prep</button>'+
+        '</div>';
+      }
+
+      function section(label,evts){
+        if(!evts.length)return'';
+        return'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">'+label+'</div>'+
+          evts.map(evCard).join('');
+      }
+
+      container.innerHTML=
+        '<div class="card" style="margin-bottom:0">'+
+          '<div style="font-size:16px;font-weight:500;margin-bottom:.75rem">📅 Upcoming calls</div>'+
+          section('Today',todayEvts)+
+          section('Tomorrow',tmrwEvts)+
+        '</div>';
+
+      // Populate meeting prep coaching tip
+      var coachMeetings=document.getElementById('ov-coach-meetings');
+      if(coachMeetings&&tmrwEvts.length){
+        var names=tmrwEvts.map(function(e){return e.subject||(e.whatName||e.whoName);}).filter(Boolean);
+        coachMeetings.innerHTML=
+          '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(63,136,123,.07);border:1px solid rgba(63,136,123,.2)">'+
+            '<span style="font-size:20px;flex-shrink:0">🗒</span>'+
+            '<div style="flex:1">'+
+              '<div style="font-weight:600;font-size:14px;color:var(--accent2)">'+tmrwEvts.length+' call'+(tmrwEvts.length>1?'s':'')+' tomorrow — time to prep</div>'+
+              '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+esc(names.join(', '))+' — review your notes and build your opp brief.</div>'+
+            '</div>'+
+            '<button class="btn-ghost btn-sm" onclick="switchTo(\'tools\')" style="font-size:13px;flex-shrink:0">Brief →</button>'+
+          '</div>';
+      }
+      if(todayEvts.length&&coachMeetings){
+        var todayNames=todayEvts.map(function(e){return e.subject||(e.whatName||e.whoName);}).filter(Boolean);
+        var prep='<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(63,136,123,.07);border:1px solid rgba(63,136,123,.2);margin-bottom:8px">'+
+          '<span style="font-size:20px;flex-shrink:0">📞</span>'+
+          '<div style="flex:1">'+
+            '<div style="font-weight:600;font-size:14px;color:var(--accent2)">'+todayEvts.length+' call'+(todayEvts.length>1?'s':'')+' today</div>'+
+            '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+esc(todayNames.join(', '))+'</div>'+
+          '</div>'+
+        '</div>';
+        coachMeetings.innerHTML=prep+(coachMeetings.innerHTML||'');
+      }
+    }).catch(function(){
+      var container=document.getElementById('ov-upcoming-calls');
+      if(container)container.innerHTML='';
+    });
+  }
 
   // Load next meeting from calendar
   if(isGC()){
