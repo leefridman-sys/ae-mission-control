@@ -874,14 +874,24 @@ function loadOverview(){
       '<button class="btn-ghost" onclick="switchTo(\'pipeline\')" style="font-size:15px">View Pipeline</button>'+
     '</div>';
 
-  // ── Load upcoming prospect calls from Salesforce ──
-  if(getSFInst()){
-    fetch('/api/salesforce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sfCreds('events_upcoming'))})
+  // ── Load upcoming prospect calls — prefer Gong (knows Lee's calendar), fall back to SF Events ──
+  var upcomingCallsUrl, upcomingCallsBody, upcomingCallsParser;
+  if(isGong()){
+    upcomingCallsUrl='/api/gong';
+    upcomingCallsBody=JSON.stringify({accessKey:getGongKey(),accessSecret:getGongSecret(),action:'upcomingCalls',email:'lee.fridman@cognota.com'});
+    upcomingCallsParser=function(data){return data.calls||[];};
+  }else if(getSFInst()){
+    upcomingCallsUrl='/api/salesforce';
+    upcomingCallsBody=JSON.stringify(sfCreds('events_upcoming'));
+    upcomingCallsParser=function(data){return data.events||[];};
+  }
+  if(upcomingCallsUrl){
+    fetch(upcomingCallsUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:upcomingCallsBody})
     .then(function(r){return r.json();}).then(function(data){
       var container=document.getElementById('ov-upcoming-calls');
       if(!container)return;
-      if(data.error||!data.events){container.innerHTML='';return;}
-      var events=data.events||[];
+      if(data.error){container.innerHTML='';return;}
+      var events=upcomingCallsParser(data);
       if(!events.length){container.innerHTML='';return;}
 
       // Group by today / tomorrow
