@@ -390,21 +390,21 @@
     color: var(--green-dark);
   }
 
-  /* ---------- Toggle switch ---------- */
-  .toggle-switch { display:inline-flex; align-items:center; cursor:pointer; }
-  .toggle-switch input { display:none; }
-  .toggle-track {
-    width: 38px; height: 22px; background: var(--light-grey-2);
-    border-radius: 11px; position: relative; transition: background .2s;
+  /* ---------- Contract term radio cards ---------- */
+  .contract-radio { display:inline-flex; cursor:pointer; }
+  .contract-radio input { display:none; }
+  .contract-radio-box {
+    display:flex; flex-direction:column; gap:2px;
+    padding: 10px 18px; border-radius: 8px;
+    border: 2px solid var(--light-grey-2);
+    background: #fff; transition: border-color .15s, background .15s;
+    min-width: 140px;
   }
-  .toggle-switch input:checked + .toggle-track { background: var(--green); }
-  .toggle-thumb {
-    position: absolute; top: 3px; left: 3px;
-    width: 16px; height: 16px; background: #fff;
-    border-radius: 50%; transition: transform .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  .contract-radio input:checked + .contract-radio-box {
+    border-color: var(--green); background: #f0faf8;
   }
-  .toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+  .contract-radio-title { font-size:14px; font-weight:700; color:var(--near-black); }
+  .contract-radio-desc  { font-size:12px; color:var(--mid-grey-2); }
 
   /* ---------- Tooltip ---------- */
   .tip {
@@ -851,22 +851,32 @@
               <div class="value" id="out_sso">$2,000</div>
             </div>
 
-            <!-- 1-year contract toggle -->
-            <div class="output" style="grid-column: 1 / -1; align-items: center;">
-              <span class="label" style="display:flex;align-items:center;gap:10px;">
-                1-year contract upfront
-                <span class="tip" data-tip="Applying a 1-year upfront contract adds a 30% uplift to the base subscription cost.">?</span>
-                <label class="toggle-switch">
-                  <input type="checkbox" id="oneYearContract" onchange="recalc()">
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <!-- Contract term selector -->
+            <div style="grid-column: 1 / -1; padding: 14px 0 6px;">
+              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mid-grey-2);margin-bottom:10px;">Contract Term</div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <label class="contract-radio">
+                  <input type="radio" name="contractTerm" value="1" onchange="recalc()" checked>
+                  <span class="contract-radio-box">
+                    <span class="contract-radio-title">1-Year</span>
+                    <span class="contract-radio-desc">Standard pricing</span>
+                  </span>
                 </label>
-                <span id="out_contractLabel" style="font-size:13px;color:var(--mid-grey-2);font-style:italic;display:none">+30% applied</span>
-              </span>
+                <label class="contract-radio">
+                  <input type="radio" name="contractTerm" value="3" onchange="recalc()">
+                  <span class="contract-radio-box">
+                    <span class="contract-radio-title">3-Year <span style="color:var(--green);font-size:12px;font-weight:700;">Save 30%</span></span>
+                    <span class="contract-radio-desc">30% off subscription</span>
+                  </span>
+                </label>
+              </div>
             </div>
 
-            <div id="row_contractUplift" class="output" style="grid-column: 1 / -1; display:none;">
-              <span class="label">Contract uplift (30%)</span>
-              <div class="value" id="out_contractUplift" style="color:var(--orange)">$0</div>
+            <div id="row_contractDiscount" class="output" style="grid-column: 1 / -1; display:none;">
+              <span class="label">3-year discount (30% off subscription)
+                <span class="tip" data-tip="Signing a 3-year contract saves 30% on the annual platform and license fees.">?</span>
+              </span>
+              <div class="value" id="out_contractDiscount" style="color:var(--green-dark)">−$0</div>
             </div>
 
             <div class="output total" style="grid-column: 1 / -1;">
@@ -1167,10 +1177,11 @@ function recalc() {
   const licenses    = num('totalLicenses');
   const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
   const baseSubscription = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
-  const oneYear     = document.getElementById('oneYearContract').checked;
-  const contractUplift = oneYear ? baseSubscription * 0.30 : 0;
+  const termEl      = document.querySelector('input[name="contractTerm"]:checked');
+  const isThreeYear = termEl && termEl.value === '3';
+  const contractDiscount = isThreeYear ? baseSubscription * 0.30 : 0;
   const investment  = baseSubscription
-                    + contractUplift
+                    - contractDiscount
                     + ONBOARDING_FEE
                     + SSO_FEE;
 
@@ -1210,13 +1221,11 @@ function recalc() {
   // ---- Paint outputs ----
   $('out_addLicenses').textContent = fmtNum(addLicenses);
   $('out_investment').textContent  = fmtUSD(investment);
-  // 1-year contract uplift row
-  const upliftRow = document.getElementById('row_contractUplift');
-  const upliftVal = document.getElementById('out_contractUplift');
-  const contractLabel = document.getElementById('out_contractLabel');
-  if (upliftRow) upliftRow.style.display = oneYear ? '' : 'none';
-  if (upliftVal) upliftVal.textContent = fmtUSD(contractUplift);
-  if (contractLabel) contractLabel.style.display = oneYear ? '' : 'none';
+  // 3-year discount row
+  const discountRow = document.getElementById('row_contractDiscount');
+  const discountVal = document.getElementById('out_contractDiscount');
+  if (discountRow) discountRow.style.display = isThreeYear ? '' : 'none';
+  if (discountVal) discountVal.textContent = '−' + fmtUSD(contractDiscount);
 
   $('out_toolMem').textContent   = fmtUSD(toolMem);
   $('out_toolMgr').textContent   = fmtUSD(toolMgr);
