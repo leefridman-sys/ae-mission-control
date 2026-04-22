@@ -872,11 +872,11 @@
               </div>
             </div>
 
-            <div id="row_contractDiscount" class="output" style="grid-column: 1 / -1; display:none;">
-              <span class="label">3-year discount (30% off subscription)
-                <span class="tip" data-tip="Signing a 3-year contract saves 30% on the annual platform and license fees.">?</span>
+            <div id="row_contractUplift" class="output" style="grid-column: 1 / -1; display:none;">
+              <span class="label">1-year contract premium (+30%)
+                <span class="tip" data-tip="1-year contracts carry a 30% premium on the subscription vs the 3-year rate. Commit to 3 years to remove this.">?</span>
               </span>
-              <div class="value" id="out_contractDiscount" style="color:var(--green-dark)">−$0</div>
+              <div class="value" id="out_contractUplift" style="color:var(--orange)">+$0</div>
             </div>
 
             <div class="output total" style="grid-column: 1 / -1;">
@@ -1178,10 +1178,11 @@ function recalc() {
   const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
   const baseSubscription = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
   const termEl      = document.querySelector('input[name="contractTerm"]:checked');
-  const isThreeYear = termEl && termEl.value === '3';
-  const contractDiscount = isThreeYear ? baseSubscription * 0.30 : 0;
+  const isOneYear   = !termEl || termEl.value === '1';
+  // 1-year carries a 30% premium over the base (3-year) rate
+  const contractUplift = isOneYear ? baseSubscription * 0.30 : 0;
   const investment  = baseSubscription
-                    - contractDiscount
+                    + contractUplift
                     + ONBOARDING_FEE
                     + SSO_FEE;
 
@@ -1221,11 +1222,11 @@ function recalc() {
   // ---- Paint outputs ----
   $('out_addLicenses').textContent = fmtNum(addLicenses);
   $('out_investment').textContent  = fmtUSD(investment);
-  // 3-year discount row
-  const discountRow = document.getElementById('row_contractDiscount');
-  const discountVal = document.getElementById('out_contractDiscount');
-  if (discountRow) discountRow.style.display = isThreeYear ? '' : 'none';
-  if (discountVal) discountVal.textContent = '−' + fmtUSD(contractDiscount);
+  // 1-year uplift row
+  const upliftRow = document.getElementById('row_contractUplift');
+  const upliftVal = document.getElementById('out_contractUplift');
+  if (upliftRow) upliftRow.style.display = isOneYear ? '' : 'none';
+  if (upliftVal) upliftVal.textContent = '+' + fmtUSD(contractUplift);
 
   $('out_toolMem').textContent   = fmtUSD(toolMem);
   $('out_toolMgr').textContent   = fmtUSD(toolMgr);
