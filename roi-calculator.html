@@ -872,16 +872,16 @@
               </div>
             </div>
 
-            <div id="row_contractUplift" class="output" style="grid-column: 1 / -1; display:none;">
-              <span class="label">1-year contract premium (+30%)
-                <span class="tip" data-tip="1-year contracts carry a 30% premium on the subscription vs the 3-year rate. Commit to 3 years to remove this.">?</span>
+            <div id="row_3yr_benefit" class="output" style="grid-column: 1 / -1; display:none; background:#f0faf8; border-radius:8px; padding:10px 14px;">
+              <span class="label" style="color:var(--green-dark); font-weight:600;">Benefit of 3-year contract
+                <span class="tip" data-tip="Amount saved annually vs standard 1-year pricing.">?</span>
               </span>
-              <div class="value" id="out_contractUplift" style="color:var(--orange)">+$0</div>
+              <div class="value" id="out_3yr_benefit" style="color:var(--green-dark)">$0/yr</div>
             </div>
 
             <div class="output total" style="grid-column: 1 / -1;">
               <span class="label">Total investment
-                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO + contract uplift if applicable.">?</span>
+                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO.">?</span>
               </span>
               <div class="value" id="out_investment">$0</div>
             </div>
@@ -1176,13 +1176,14 @@ function recalc() {
   }
   const licenses    = num('totalLicenses');
   const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
-  const baseSubscription = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
   const termEl      = document.querySelector('input[name="contractTerm"]:checked');
-  const isOneYear   = !termEl || termEl.value === '1';
-  // 1-year carries a 30% premium over the base (3-year) rate
-  const contractUplift = isOneYear ? baseSubscription * 0.30 : 0;
-  const investment  = baseSubscription
-                    + contractUplift
+  const isThreeYear = termEl && termEl.value === '3';
+  // Base ($25k) = 3-year rate. 1-year = base × 1.30
+  const subscriptionBase = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
+  const subscription1yr  = subscriptionBase * 1.30;
+  const activeSubscription = isThreeYear ? subscriptionBase : subscription1yr;
+  const threeYrSavings   = subscription1yr - subscriptionBase; // how much cheaper 3yr is vs 1yr
+  const investment  = activeSubscription
                     + ONBOARDING_FEE
                     + SSO_FEE;
 
@@ -1222,11 +1223,13 @@ function recalc() {
   // ---- Paint outputs ----
   $('out_addLicenses').textContent = fmtNum(addLicenses);
   $('out_investment').textContent  = fmtUSD(investment);
-  // 1-year uplift row
-  const upliftRow = document.getElementById('row_contractUplift');
-  const upliftVal = document.getElementById('out_contractUplift');
-  if (upliftRow) upliftRow.style.display = isOneYear ? '' : 'none';
-  if (upliftVal) upliftVal.textContent = '+' + fmtUSD(contractUplift);
+  // Platform fee reflects selected term
+  $('out_platformFee').textContent = fmtUSD(isThreeYear ? subscriptionBase : subscription1yr);
+  // 3-year benefit row
+  const benefitRow = document.getElementById('row_3yr_benefit');
+  const benefitVal = document.getElementById('out_3yr_benefit');
+  if (benefitRow) benefitRow.style.display = isThreeYear ? '' : 'none';
+  if (benefitVal) benefitVal.textContent = fmtUSD(threeYrSavings) + '/yr';
 
   $('out_toolMem').textContent   = fmtUSD(toolMem);
   $('out_toolMgr').textContent   = fmtUSD(toolMgr);
