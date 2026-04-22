@@ -678,7 +678,7 @@
 
   /* ---------- Print ---------- */
   @media print {
-    body { background: white; }
+    body { background: white; padding-right: 0 !important; }
     .app { max-width: 100%; padding: 0; }
     .topbar-actions, details.assumptions > summary::before { display: none !important; }
     details.assumptions[open] > summary { display: none; }
@@ -686,6 +686,35 @@
     .top-row { grid-template-columns: 1fr 1fr; }
     .middle-row { grid-template-columns: 1fr 1fr; }
     #pain-panel, #pain-toggle { display: none !important; }
+    #pain-print-section { display: block !important; }
+  }
+
+  #pain-print-section {
+    display: none;
+    page-break-before: always;
+    padding: 32px 0 0;
+  }
+  #pain-print-section h2 {
+    font-family: 'Vollkorn', Georgia, serif;
+    font-size: 22px; font-weight: 700;
+    color: var(--near-black); margin-bottom: 4px;
+  }
+  #pain-print-section .pain-print-prospect {
+    font-size: 15px; color: var(--mid-grey-2); margin-bottom: 20px;
+  }
+  .pain-print-item {
+    display: flex; gap: 14px; padding: 11px 0;
+    border-bottom: 1px solid var(--light-grey-2);
+    font-size: 13px; line-height: 1.6; color: var(--near-black);
+    page-break-inside: avoid;
+  }
+  .pain-print-item:last-child { border-bottom: none; }
+  .pain-print-num {
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--green-deep); color: #b1d9d1;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 2px;
   }
 
   /* ---------- Pain Points Panel ---------- */
@@ -959,7 +988,7 @@
 
       <!-- Disparate tools savings -->
       <div class="card">
-        <div class="card-header"><h2>Cost Savings on Disparate Tools, USD (Annual)</h2></div>
+        <div class="card-header"><h2>Cost Savings on Tools, USD (Annual)</h2></div>
         <div class="card-body">
           <div class="output-grid">
             <div class="output">
@@ -1165,6 +1194,9 @@
   <div class="disclaimer">
     <strong>Disclaimer:</strong> The ROI and financial figures shown in this tool are estimates only. They are based on data from Cognota customers, industry research, and expert input. Your actual ROI may differ. Cognota is not responsible for the accuracy or outcomes of these estimates.
   </div>
+
+  <!-- Pain points section — hidden on screen, shown on print -->
+  <div id="pain-print-section"></div>
 </div>
 
 <!-- ============ PAIN POINTS PANEL ============ -->
@@ -1469,6 +1501,23 @@ function loadPainPoints(){
 }
 
 loadPainPoints();
+
+// Populate pain points print section before PDF export
+window.addEventListener('beforeprint', function(){
+  var section = document.getElementById('pain-print-section');
+  if (!section) return;
+  var prospect = (document.getElementById('pain-prospect').value || '').trim();
+  var text = document.getElementById('pain-textarea').value || '';
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+  if (!lines.length) { section.innerHTML = ''; return; }
+  var html = '<h2>Discovery Pain Points</h2>';
+  if (prospect) html += '<div class="pain-print-prospect">' + prospect + '</div>';
+  html += lines.map(function(line, i){
+    var formatted = line.replace(/^(.+?)\s*[—–-]{1,2}\s*/, '<strong>$1</strong> — ');
+    return '<div class="pain-print-item"><span class="pain-print-num">' + (i + 1) + '</span>' + formatted + '</div>';
+  }).join('');
+  section.innerHTML = html;
+});
 </script>
 </body>
 </html>
