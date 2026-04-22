@@ -1381,6 +1381,14 @@ function resetDefaults() {
   recalc();
 }
 
+function updateCompanyTips(){
+  var name=($('customerName').value||'').trim()||'this company';
+  var tip=document.getElementById('tip-admin-hours');
+  if(tip) tip.setAttribute('data-tip','L&D admin/ops FTEs × Annual FTE hours × % of admin time recovered. Scales with '+name+'\'s admin footprint — edit in Advanced Assumptions below.');
+}
+$('customerName').addEventListener('input', updateCompanyTips);
+updateCompanyTips();
+
 setToday();
 recalc();
 
