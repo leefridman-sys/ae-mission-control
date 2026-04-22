@@ -388,6 +388,8 @@
 
   .output.total .value {
     color: var(--green-deep);
+    font-size: 36px;
+    letter-spacing: -0.02em;
   }
 
   .output.highlight .value {
@@ -1200,15 +1202,15 @@
 </div>
 
 <!-- ============ PAIN POINTS PANEL ============ -->
-<button id="pain-toggle" onclick="togglePainPanel()" title="Discovery Pain Points">
+<button id="pain-toggle" onclick="togglePainPanel()" title="Investment Justification">
   <span id="pain-toggle-icon">◀</span>
-  <span style="writing-mode:vertical-rl;text-orientation:mixed;margin-top:8px;letter-spacing:.08em;font-size:11px;font-weight:700;text-transform:uppercase;">Pain Points</span>
+  <span style="writing-mode:vertical-rl;text-orientation:mixed;margin-top:8px;letter-spacing:.08em;font-size:11px;font-weight:700;text-transform:uppercase;">Investment Justification</span>
 </button>
 
 <div id="pain-panel">
   <div class="pain-header">
     <div style="flex:1;min-width:0">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);margin-bottom:4px;">Discovery Pain Points</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);margin-bottom:4px;">Investment Justification</div>
       <input id="pain-prospect" type="text" placeholder="Prospect name..." style="border:none;border-bottom:2px solid var(--light-grey-2);background:transparent;font-size:18px;font-weight:700;color:var(--near-black);width:100%;outline:none;padding:2px 0;font-family:inherit;" oninput="savePainPoints()" />
     </div>
     <button onclick="togglePainPanel()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--mid-grey-2);padding:4px;line-height:1;flex-shrink:0;">✕</button>
@@ -1510,7 +1512,7 @@ window.addEventListener('beforeprint', function(){
   var text = document.getElementById('pain-textarea').value || '';
   var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
   if (!lines.length) { section.innerHTML = ''; return; }
-  var html = '<h2>Discovery Pain Points</h2>';
+  var html = '<h2>Investment Justification</h2>';
   if (prospect) html += '<div class="pain-print-prospect">' + prospect + '</div>';
   html += lines.map(function(line, i){
     var formatted = line.replace(/^(.+?)\s*[—–-]{1,2}\s*/, '<strong>$1</strong> — ');
