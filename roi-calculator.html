@@ -1516,7 +1516,7 @@ window.addEventListener('beforeprint', function(){
   if (prospect) html += '<div class="pain-print-prospect">' + prospect + '</div>';
   html += lines.map(function(line, i){
     var formatted = line.replace(/^(.+?)\s*[—–-]{1,2}\s*/, '<strong>$1</strong> — ');
-    return '<div class="pain-print-item"><span class="pain-print-num">' + (i + 1) + '</span>' + formatted + '</div>';
+    return '<div class="pain-print-item"><span class="pain-print-num">' + (i + 1) + '</span><div>' + formatted + '</div></div>';
   }).join('');
   section.innerHTML = html;
 });
