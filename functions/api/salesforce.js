@@ -50,18 +50,33 @@ export async function onRequest(context) {
 
     if (action === 'opportunities') {
       // Fetch open opportunities owned by the current user
-      const soql = encodeURIComponent(
+      // Try fetching opps owned by the token user first; if 0 results, fall back without owner filter
+      // (token user_id may not match OwnerId if connected via service account or different auth method)
+      const soqlOwned = encodeURIComponent(
         `SELECT Id, Name, AccountId, Account.Name, StageName, Amount, CloseDate, Description, NextStep, LastActivityDate, CreatedDate
          FROM Opportunity
          WHERE IsClosed = false AND OwnerId = '${userId}'
          ORDER BY CloseDate ASC NULLS LAST
          LIMIT 100`
       );
-      const res = await fetch(`${apiBase}/query/?q=${soql}`, { headers: h });
-      const data = await res.json();
-      // Salesforce returns errors as either an object {errorCode,message} or an array [{errorCode,message}]
-      const errObj = Array.isArray(data) ? data[0] : data;
+      const soqlAll = encodeURIComponent(
+        `SELECT Id, Name, AccountId, Account.Name, StageName, Amount, CloseDate, Description, NextStep, LastActivityDate, CreatedDate
+         FROM Opportunity
+         WHERE IsClosed = false
+         ORDER BY CloseDate ASC NULLS LAST
+         LIMIT 100`
+      );
+      let res = await fetch(`${apiBase}/query/?q=${soqlOwned}`, { headers: h });
+      let data = await res.json();
+      let errObj = Array.isArray(data) ? data[0] : data;
       if (errObj && errObj.errorCode) return new Response(JSON.stringify({ error: errObj.message || errObj.errorCode }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+      // If owner-filtered query returns nothing, the token user_id doesn't match OwnerId — fetch without filter
+      if ((data.records || []).length === 0) {
+        res = await fetch(`${apiBase}/query/?q=${soqlAll}`, { headers: h });
+        data = await res.json();
+        errObj = Array.isArray(data) ? data[0] : data;
+        if (errObj && errObj.errorCode) return new Response(JSON.stringify({ error: errObj.message || errObj.errorCode }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+      }
 
       // Compute opp age the same way Salesforce does: date-only diff, no time/timezone math
       const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" in UTC
