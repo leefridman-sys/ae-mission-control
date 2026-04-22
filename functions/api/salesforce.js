@@ -176,30 +176,36 @@ export async function onRequest(context) {
     }
 
     if (action === 'events_upcoming') {
-      // Fetch Events for today + tomorrow linked to a Contact (WhoId != null = prospect-facing, not internal)
+      // Fetch Events for today + tomorrow linked to a Contact or Opportunity.
+      // No OwnerId filter — Gong logs meetings under the calendar creator (often Adam the BDR),
+      // so filtering by owner would miss co-created prospect calls.
+      // WhoId/WhatId ensures we only see prospect-facing meetings, not internal blocks.
       const soql = encodeURIComponent(
         `SELECT Id, Subject, StartDateTime, EndDateTime, WhoId, Who.Name, WhatId, What.Name, What.Type, Description, Location
          FROM Event
-         WHERE OwnerId = '${userId}'
-         AND StartDateTime >= TODAY
+         WHERE StartDateTime >= TODAY
          AND StartDateTime <= NEXT_N_DAYS:2
-         AND WhoId != null
+         AND (WhoId != null OR WhatId != null)
          ORDER BY StartDateTime ASC
-         LIMIT 20`
+         LIMIT 30`
       );
       const res = await fetch(`${apiBase}/query/?q=${soql}`, { headers: h });
       const data = await res.json();
       const errObj = Array.isArray(data) ? data[0] : data;
       if (errObj && errObj.errorCode) return new Response(JSON.stringify({ error: errObj.message || errObj.errorCode }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      // Use Eastern time for date bucketing so today/tomorrow match Lee's clock
+      const tz = 'America/Toronto';
+      const toEasternDate = (d) => d.toLocaleDateString('en-CA', { timeZone: tz }); // "YYYY-MM-DD"
+      const nowEastern = new Date();
+      const todayStr    = toEasternDate(nowEastern);
+      const tomorrowStr = toEasternDate(new Date(Date.now() + 86400000));
 
       const events = (data.records || []).map(ev => {
         const start = ev.StartDateTime ? new Date(ev.StartDateTime) : null;
         const end   = ev.EndDateTime   ? new Date(ev.EndDateTime)   : null;
-        const dateStr = start ? start.toISOString().slice(0, 10) : '';
-        const timeStr = start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto' }) : '';
+        const dateStr = start ? toEasternDate(start) : '';
+        const timeStr = start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz }) : '';
         const durMins = (start && end) ? Math.round((end - start) / 60000) : null;
         const durStr  = durMins ? (durMins >= 60 ? Math.floor(durMins / 60) + 'h' + (durMins % 60 ? ' ' + (durMins % 60) + 'm' : '') : durMins + 'm') : '';
         const isToday = dateStr === todayStr;
