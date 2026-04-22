@@ -2787,7 +2787,7 @@ function openAccountDrawer(id){
         '<div style="min-width:0;overflow:hidden">'+
           '<div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(c.name)+'</div>'+
           '<div style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+escQ(c.title||'')+'">'+esc(c.title||'')+'</div>'+
-          (c.email?'<a href="mailto:'+esc(c.email)+'" style="font-size:13px;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block" onclick="event.stopPropagation()">'+esc(c.email)+'</a>':'')+
+          (c.email?'<span style="font-size:13px;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;cursor:pointer" onclick="event.stopPropagation();copyText(\''+esc(c.email)+'\');showToast(\'Email copied\')" title="Click to copy">'+esc(c.email)+'</span>':'')+
         '</div>'+
         seqBadge+
         '<div><select onchange="updateObContact(\''+id+'\','+ci+',\'status\',this.value)" style="font-size:14px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);min-width:110px">'+
@@ -2922,7 +2922,7 @@ function openAccountDrawer(id){
           return'<div style="display:flex;align-items:center;gap:8px;padding:.35rem .7rem;background:var(--bg);border-radius:6px;margin-bottom:3px;font-size:15px">'+
             '<div style="flex:1"><span style="font-weight:500">'+esc(c.name)+'</span>'+(c.title?' <span style="color:var(--muted);font-size:14px">· '+esc(c.title)+'</span>':'')+
             '</div>'+
-            (c.email?'<a href="mailto:'+esc(c.email)+'" style="font-size:14px;color:var(--accent)">'+esc(c.email)+'</a>':'')+
+            (c.email?'<span style="font-size:14px;color:var(--accent);cursor:pointer" onclick="copyText(\''+esc(c.email)+'\');showToast(\'Email copied\')" title="Click to copy">'+esc(c.email)+'</span>':'')+
           '</div>';
         }).join('');
       }
