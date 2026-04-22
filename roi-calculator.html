@@ -390,6 +390,22 @@
     color: var(--green-dark);
   }
 
+  /* ---------- Toggle switch ---------- */
+  .toggle-switch { display:inline-flex; align-items:center; cursor:pointer; }
+  .toggle-switch input { display:none; }
+  .toggle-track {
+    width: 38px; height: 22px; background: var(--light-grey-2);
+    border-radius: 11px; position: relative; transition: background .2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; background: #fff;
+    border-radius: 50%; transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+
   /* ---------- Tooltip ---------- */
   .tip {
     display: inline-flex;
@@ -835,9 +851,27 @@
               <div class="value" id="out_sso">$2,000</div>
             </div>
 
+            <!-- 1-year contract toggle -->
+            <div class="output" style="grid-column: 1 / -1; align-items: center;">
+              <span class="label" style="display:flex;align-items:center;gap:10px;">
+                1-year contract upfront
+                <span class="tip" data-tip="Applying a 1-year upfront contract adds a 30% uplift to the base subscription cost.">?</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="oneYearContract" onchange="recalc()">
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+                <span id="out_contractLabel" style="font-size:13px;color:var(--mid-grey-2);font-style:italic;display:none">+30% applied</span>
+              </span>
+            </div>
+
+            <div id="row_contractUplift" class="output" style="grid-column: 1 / -1; display:none;">
+              <span class="label">Contract uplift (30%)</span>
+              <div class="value" id="out_contractUplift" style="color:var(--orange)">$0</div>
+            </div>
+
             <div class="output total" style="grid-column: 1 / -1;">
               <span class="label">Total investment
-                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO.">?</span>
+                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO + contract uplift if applicable.">?</span>
               </span>
               <div class="value" id="out_investment">$0</div>
             </div>
@@ -1132,8 +1166,11 @@ function recalc() {
   }
   const licenses    = num('totalLicenses');
   const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
-  const investment  = PLATFORM_FEE
-                    + addLicenses * PRICE_PER_ADD_LIC
+  const baseSubscription = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
+  const oneYear     = document.getElementById('oneYearContract').checked;
+  const contractUplift = oneYear ? baseSubscription * 0.30 : 0;
+  const investment  = baseSubscription
+                    + contractUplift
                     + ONBOARDING_FEE
                     + SSO_FEE;
 
@@ -1173,6 +1210,13 @@ function recalc() {
   // ---- Paint outputs ----
   $('out_addLicenses').textContent = fmtNum(addLicenses);
   $('out_investment').textContent  = fmtUSD(investment);
+  // 1-year contract uplift row
+  const upliftRow = document.getElementById('row_contractUplift');
+  const upliftVal = document.getElementById('out_contractUplift');
+  const contractLabel = document.getElementById('out_contractLabel');
+  if (upliftRow) upliftRow.style.display = oneYear ? '' : 'none';
+  if (upliftVal) upliftVal.textContent = fmtUSD(contractUplift);
+  if (contractLabel) contractLabel.style.display = oneYear ? '' : 'none';
 
   $('out_toolMem').textContent   = fmtUSD(toolMem);
   $('out_toolMgr').textContent   = fmtUSD(toolMgr);
