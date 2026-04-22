@@ -176,18 +176,19 @@ export async function onRequest(context) {
     }
 
     if (action === 'events_upcoming') {
-      // Fetch Events for today + tomorrow linked to a Contact or Opportunity.
-      // No OwnerId filter — Gong logs meetings under the calendar creator (often Adam the BDR),
-      // so filtering by owner would miss co-created prospect calls.
-      // WhoId/WhatId ensures we only see prospect-facing meetings, not internal blocks.
+      // Two-pronged approach to catch Gong-synced calls:
+      // 1. Events Lee owns (he created them)
+      // 2. Events linked to Lee's open opportunities (Gong logs these regardless of who owns the event)
       const soql = encodeURIComponent(
         `SELECT Id, Subject, StartDateTime, EndDateTime, WhoId, Who.Name, WhatId, What.Name, What.Type, Description, Location
          FROM Event
-         WHERE StartDateTime >= TODAY
+         WHERE (OwnerId = '${userId}'
+                OR WhatId IN (SELECT Id FROM Opportunity WHERE OwnerId = '${userId}' AND IsClosed = false))
+         AND StartDateTime >= TODAY
          AND StartDateTime <= NEXT_N_DAYS:2
          AND (WhoId != null OR WhatId != null)
          ORDER BY StartDateTime ASC
-         LIMIT 30`
+         LIMIT 20`
       );
       const res = await fetch(`${apiBase}/query/?q=${soql}`, { headers: h });
       const data = await res.json();
