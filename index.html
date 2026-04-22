@@ -1330,25 +1330,82 @@ function renderOpportunityBrief(text,label,preserveChat){
   // Reset chat when a brand new brief is loaded, preserve it during refinements
   if(!preserveChat){_briefChat={messages:[],briefText:text,briefLabel:label};}
   else{_briefChat.briefText=text;_briefChat.briefLabel=label;}
-  var emailMatch=text.match(/6\.\s*DRAFT INTRO EMAIL\s*\n([\s\S]+?)$/i);
+  var emailMatch=text.match(/6\.\s*DRAFT INTRO EMAIL\s*[\n:]([\s\S]+?)$/i);
   var emailText=emailMatch?emailMatch[1].trim():'';
-  var sections=text.split(/\n(?=\d\.\s+[A-Z])/);
-  var html=sections.map(function(sec){
-    var lines=sec.split('\n');
-    var heading=lines[0];
+
+  // ── Brief renderer ──────────────────────────────────────────────────────
+  // Convert inline markdown (bold / italic) to HTML — always esc first
+  function mdInline(str){
+    return(str||'')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+  }
+
+  // Split on numbered section boundaries (handles plain "1. TITLE" and "## 1. TITLE")
+  var sections=text.split(/\n(?=(?:#{1,3}\s*)?\d+\.\s+[A-Z])/);
+
+  // Separate any preamble (title block before section 1)
+  var firstIsSection=/^(?:#{1,3}\s*)?\d+\.\s+[A-Z]/.test((sections[0]||'').trim());
+  var preamble=firstIsSection?'':sections.shift();
+
+  var preambleHtml='';
+  if(preamble&&preamble.trim()){
+    preambleHtml='<div style="margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">';
+    preamble.trim().split('\n').forEach(function(line){
+      var t=line.replace(/^#+\s*/,'').replace(/^-{3,}$/,'').trim();
+      if(!t)return;
+      var isTitle=/^#/.test(line)||(!preambleHtml.includes('<div style="font-size'));
+      preambleHtml+='<div style="font-size:'+(preambleHtml.split('<div').length<=2?'20px':'14px')+
+        ';font-weight:'+(preambleHtml.split('<div').length<=2?'600':'400')+
+        ';color:'+(preambleHtml.split('<div').length<=2?'var(--text)':'var(--muted)')+
+        ';line-height:1.4;margin-bottom:3px">'+mdInline(t)+'</div>';
+    });
+    preambleHtml+='</div>';
+  }
+
+  var html=preamble?preambleHtml:'';
+  html+=sections.map(function(sec){
+    var lines=sec.trim().split('\n');
+    // Heading: strip ##, digit prefix
+    var rawHeading=lines[0].replace(/^#+\s*/,'').trim();
+    var headingNum=rawHeading.match(/^(\d+)\.\s*/);
+    var headingText=rawHeading.replace(/^\d+\.\s*/,'');
     var body=lines.slice(1).join('\n').trim();
+
     var bodyHtml=body.split('\n').map(function(line){
-      if(!line.trim())return'<div style="height:5px"></div>';
-      if(/^[-•]\s/.test(line.trim())){
-        return'<div style="display:flex;gap:8px;margin-bottom:5px"><span style="color:var(--accent);flex-shrink:0;margin-top:3px">›</span><span style="font-size:16px;line-height:1.65;color:var(--text)">'+esc(line.replace(/^[-•]\s*/,''))+'</span></div>';
+      var t=line.trim();
+      if(!t||/^---+$/.test(t))return'<div style="height:6px"></div>';
+      // Numbered list item
+      if(/^\d+\.\s/.test(t)){
+        var content=t.replace(/^\d+\.\s*/,'');
+        return'<div style="display:flex;gap:10px;margin-bottom:7px;align-items:flex-start">'+
+          '<span style="flex-shrink:0;min-width:20px;font-size:13px;font-weight:700;color:var(--accent2);margin-top:2px">'+t.match(/^\d+/)[0]+'.</span>'+
+          '<div style="font-size:15px;line-height:1.65;color:var(--text)">'+mdInline(content)+'</div>'+
+        '</div>';
       }
-      return'<div style="font-size:16px;line-height:1.7;color:var(--text);margin-bottom:3px">'+esc(line)+'</div>';
+      // Bullet item
+      if(/^[-•*]\s/.test(t)){
+        var content=t.replace(/^[-•*]\s+/,'');
+        // Check if it's a sub-heading style (starts with **Word:**)
+        var isKv=/^\*\*[^*]+\*\*\s*[—–:-]/.test(content);
+        return'<div style="display:flex;gap:10px;margin-bottom:'+(isKv?'9':'6')+'px;align-items:flex-start">'+
+          '<span style="flex-shrink:0;color:var(--accent);font-size:14px;margin-top:3px;font-weight:700">›</span>'+
+          '<div style="font-size:15px;line-height:1.65;color:var(--text)">'+mdInline(content)+'</div>'+
+        '</div>';
+      }
+      // Plain paragraph line
+      return'<div style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:4px">'+mdInline(line)+'</div>';
     }).join('');
-    return'<div style="margin-bottom:1.25rem">'+
-      '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem">'+esc(heading.replace(/^\d\.\s*/,''))+'</div>'+
-      '<div>'+bodyHtml+'</div>'+
+
+    return'<div style="margin-bottom:1.5rem;padding-bottom:.25rem">'+
+      '<div style="display:flex;align-items:center;gap:9px;margin-bottom:.65rem">'+
+        (headingNum?'<span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">'+headingNum[1]+'</span>':'')+
+        '<div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2)">'+esc(headingText)+'</div>'+
+      '</div>'+
+      '<div style="padding-left:'+(headingNum?'31px':'0')+'">'+bodyHtml+'</div>'+
     '</div>';
-  }).join('');
+  }).join('<div style="height:1px;background:var(--border);margin-bottom:1.25rem"></div>');
 
   var createdOn=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   // Build chat thread HTML from existing messages
@@ -1357,9 +1414,17 @@ function renderOpportunityBrief(text,label,preserveChat){
       return'<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
         '<div style="max-width:80%;background:var(--accent);color:#fff;border-radius:12px 12px 2px 12px;padding:9px 13px;font-size:14px;line-height:1.55">'+esc(m.content)+'</div>'+
       '</div>';
-    }else{
+    }else if(m.content==='[Brief updated ✓]'){
       return'<div style="display:flex;justify-content:flex-start;margin-bottom:8px">'+
-        '<div style="max-width:85%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;line-height:1.55;color:var(--text)">'+esc(m.content)+'</div>'+
+        '<div style="background:rgba(63,136,123,.08);border:1px solid rgba(63,136,123,.25);border-radius:12px 12px 12px 2px;padding:9px 14px;font-size:14px;color:var(--accent2);display:flex;align-items:center;gap:8px">'+
+        '<span>✓</span><span style="font-weight:500">Brief updated</span></div>'+
+      '</div>';
+    }else{
+      var md=m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+?)\*/g,'<em>$1</em>')
+        .replace(/\n\n/g,'</p><p style="margin:6px 0">').replace(/\n/g,'<br>');
+      return'<div style="display:flex;justify-content:flex-start;margin-bottom:8px">'+
+        '<div style="max-width:85%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:10px 14px;font-size:14px;line-height:1.6;color:var(--text)"><p style="margin:0">'+md+'</p></div>'+
       '</div>';
     }
   }).join('');
@@ -1444,8 +1509,6 @@ function sendBriefChat(){
     var thinkEl=document.getElementById('brief-chat-thinking');
     if(thinkEl)thinkEl.remove();
 
-    _briefChat.messages.push({role:'assistant',content:reply});
-
     // Detect UPDATED BRIEF — robust match: strip leading whitespace/markdown before checking
     var cleanReply=reply.replace(/^[\s*_#]+/,'');
     var isUpdate=/^UPDATED BRIEF:/i.test(cleanReply);
@@ -1454,6 +1517,8 @@ function sendBriefChat(){
       // Strip the marker and any surrounding whitespace/markdown
       var newBriefText=reply.replace(/^[\s\S]*?UPDATED BRIEF:\s*/i,'').trim();
       _briefChat.briefText=newBriefText;
+      // Store a short placeholder in history (not the 3000-word brief) so the thread stays clean
+      _briefChat.messages.push({role:'assistant',content:'[Brief updated ✓]'});
       // Show a compact confirmation in the thread — NOT the raw brief text
       var confirmBubble=document.createElement('div');
       confirmBubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
@@ -1466,7 +1531,8 @@ function sendBriefChat(){
       // Re-render brief panel with new content, preserving chat history
       setTimeout(function(){renderOpportunityBrief(newBriefText,_briefChat.briefLabel,true);},300);
     }else{
-      // Conversational reply — render with basic markdown so bold/bullets look right
+      // Conversational reply — store in history and render with basic markdown
+      _briefChat.messages.push({role:'assistant',content:reply});
       var rendered=reply
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
