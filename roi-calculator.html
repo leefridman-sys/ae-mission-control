@@ -41,6 +41,10 @@
     font-weight: 400;
     font-size: 15px;
     line-height: 1.5;
+    transition: padding-right .25s ease;
+  }
+  body.pain-open {
+    padding-right: 400px;
   }
 
   h1, h2, h3 {
@@ -1425,6 +1429,7 @@ function togglePainPanel(){
   var isOpen=panel.classList.contains('open');
   panel.classList.toggle('open',!isOpen);
   btn.classList.toggle('open',!isOpen);
+  document.body.classList.toggle('pain-open',!isOpen);
   icon.textContent=isOpen?'◀':'▶';
 }
 
