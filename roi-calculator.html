@@ -714,12 +714,11 @@
   }
 
   #pain-textarea {
-    width: 100%; height: 160px; resize: vertical;
+    width: 100%; resize: vertical;
     border: 1px solid var(--light-grey-2); border-radius: 8px;
     padding: 10px 12px; font-size: 13px; font-family: inherit;
     color: var(--near-black); background: var(--near-white);
-    outline: none; margin-bottom: 14px; line-height: 1.5;
-    flex-shrink: 0;
+    outline: none; line-height: 1.5; display: block;
   }
   #pain-textarea:focus { border-color: var(--green); }
 
@@ -1178,11 +1177,14 @@
     </div>
     <button onclick="togglePainPanel()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--mid-grey-2);padding:4px;line-height:1;flex-shrink:0;">✕</button>
   </div>
-  <div style="padding:10px 20px 0;flex-shrink:0;">
+  <div id="pain-rendered" style="flex:1;overflow-y:auto;padding:12px 20px 8px;"></div>
+  <div id="pain-edit-drawer" style="flex-shrink:0;border-top:1px solid var(--light-grey-2);display:none;padding:12px 20px;">
     <div style="font-size:12px;color:var(--mid-grey-1);margin-bottom:6px;">One pain point per line · saves automatically</div>
-    <textarea id="pain-textarea" oninput="renderPainList();savePainPoints()" placeholder="Paste or type pain points here, one per line..."></textarea>
+    <textarea id="pain-textarea" oninput="renderPainList();savePainPoints()" placeholder="Paste or type pain points here, one per line..." style="height:180px;"></textarea>
   </div>
-  <div id="pain-rendered" style="flex:1;overflow-y:auto;padding:4px 20px 20px;"></div>
+  <div style="flex-shrink:0;padding:10px 20px;border-top:1px solid var(--light-grey-2);">
+    <button onclick="togglePainEdit()" id="pain-edit-btn" style="background:none;border:1px solid var(--light-grey-2);border-radius:6px;padding:6px 14px;font-size:13px;color:var(--dark-grey);cursor:pointer;font-family:inherit;width:100%;">✎ Edit pain points</button>
+  </div>
 </div>
 
 <script>
@@ -1404,6 +1406,17 @@ Ops techs and collaboration time is untracked — Jacob and Kevin went deep on t
 No way to justify headcount — Jacob: if they could show 160 hours/month of training coordination work, that justifies a coordinator hire. If it's 320, they know what two coordinators looks like. Right now they have no data to make that case.
 Webster built from scratch with no baseline — Kevin: "we're not mature enough in our processes there yet to even have intake." They don't know what they don't know. And now Project Ocho is coming and they have no data from the Webster build to scope it against.
 Monday.com isn't built for LD — Casey uses it but openly said "are we using it to its full capabilities? Probably not." It keeps them organized at a surface level but doesn't speak LD — no intake logic, no capacity, no strategy alignment.`;
+
+function togglePainEdit(){
+  var drawer=document.getElementById('pain-edit-drawer');
+  var btn=document.getElementById('pain-edit-btn');
+  var isOpen=drawer.style.display!=='none';
+  drawer.style.display=isOpen?'none':'block';
+  btn.textContent=isOpen?'✎ Edit pain points':'✓ Done editing';
+  btn.style.background=isOpen?'':'var(--green-deep)';
+  btn.style.color=isOpen?'':'#b1d9d1';
+  btn.style.borderColor=isOpen?'var(--light-grey-2)':'var(--green-deep)';
+}
 
 function togglePainPanel(){
   var panel=document.getElementById('pain-panel');
