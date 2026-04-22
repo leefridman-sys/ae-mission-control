@@ -908,72 +908,78 @@
               <input type="number" id="totalLicenses" class="value-input" value="11" min="0" step="1" />
             </div>
 
+            <!-- Contract term selector -->
+            <div style="grid-column: 1 / -1; padding: 4px 0 10px;">
+              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mid-grey-2);margin-bottom:10px;">Contract Term</div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <label class="contract-radio">
+                  <input type="radio" name="contractTerm" value="3" onchange="recalc()" checked>
+                  <span class="contract-radio-box">
+                    <span class="contract-radio-title">3-Year</span>
+                    <span class="contract-radio-desc">Standard pricing</span>
+                  </span>
+                </label>
+                <label class="contract-radio">
+                  <input type="radio" name="contractTerm" value="1" onchange="recalc()">
+                  <span class="contract-radio-box">
+                    <span class="contract-radio-title">1-Year</span>
+                    <span class="contract-radio-desc" style="color:var(--orange);font-weight:700;">+30% annually</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- ANNUAL COSTS -->
+            <div style="grid-column: 1 / -1; font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);padding-top:4px;border-top:1px solid var(--light-grey-2);">Annual costs</div>
+
             <div class="output">
-              <span class="label">Platform fee (includes 10 licenses)
+              <span class="label">Platform fee (incl. 10 licenses)
                 <span class="tip" data-tip="Cognota annual platform fee. Includes the first 10 licenses.">?</span>
               </span>
               <div class="value" id="out_platformFee">$25,000</div>
             </div>
 
             <div class="output">
-              <span class="label">Additional licenses needed
-                <span class="tip" data-tip="Licenses beyond the 10 included in the platform fee. Formula: max(0, Total licenses − 10).">?</span>
+              <span class="label">Additional licenses
+                <span class="tip" data-tip="Licenses beyond the 10 included in the platform fee. Formula: max(0, Total licenses − 10) × $1,499/yr.">?</span>
               </span>
               <div class="value" id="out_addLicenses">0</div>
             </div>
 
-            <div class="output">
-              <span class="label">Price per additional license
-                <span class="tip" data-tip="$1,499 per additional license per year (list price).">?</span>
+            <div id="row_1yr_deviation" class="output" style="grid-column: 1 / -1; display:none; background:#fff5f0; border-radius:8px; padding:10px 14px;">
+              <span class="label" style="color:var(--orange); font-weight:600;">1-year deviation from standard
+                <span class="tip" data-tip="Additional cost vs standard 3-year pricing. 1-year contracts carry a 30% annual premium.">?</span>
               </span>
-              <div class="value" id="out_pricePerLic">$1,499</div>
+              <div class="value" id="out_1yr_deviation" style="color:var(--orange)">$0/yr</div>
             </div>
 
-            <div class="output">
-              <span class="label">Onboarding (one-time)
-                <span class="tip" data-tip="One-time onboarding fee covering implementation, configuration, and initial enablement.">?</span>
+            <div class="output total" style="grid-column: 1 / -1; border-top:1px solid var(--light-grey-2); padding-top:10px;">
+              <span class="label">Annual subscription
+                <span class="tip" data-tip="Platform fee + additional licenses × $1,499. 3-year = standard rate; 1-year = +30%.">?</span>
               </span>
-              <div class="value" id="out_onboarding">$4,000</div>
+              <div class="value" id="out_annualSub">$0</div>
             </div>
 
-            <div class="output">
-              <span class="label">SSO (one-time)
-                <span class="tip" data-tip="One-time single sign-on setup fee.">?</span>
-              </span>
-              <div class="value" id="out_sso">$2,000</div>
-            </div>
-
-            <!-- Contract term selector -->
-            <div style="grid-column: 1 / -1; padding: 14px 0 6px;">
-              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mid-grey-2);margin-bottom:10px;">Contract Term</div>
-              <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <label class="contract-radio">
-                  <input type="radio" name="contractTerm" value="1" onchange="recalc()" checked>
-                  <span class="contract-radio-box">
-                    <span class="contract-radio-title">1-Year</span>
-                    <span class="contract-radio-desc">Standard pricing</span>
-                  </span>
-                </label>
-                <label class="contract-radio">
-                  <input type="radio" name="contractTerm" value="3" onchange="recalc()">
-                  <span class="contract-radio-box">
-                    <span class="contract-radio-title">3-Year</span>
-                    <span class="contract-radio-desc" style="color:var(--green);font-weight:700;">−30% annually</span>
-                  </span>
-                </label>
+            <!-- INCLUDED IN PLATFORM FEE -->
+            <div style="grid-column: 1 / -1; margin-top:4px; padding:12px 14px; background:var(--light-grey-1); border-radius:8px; border:1px solid var(--light-grey-2);">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);margin-bottom:8px;">Included in platform fee</div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dark-grey);">
+                  <span style="color:var(--green);font-weight:700;">✓</span> Onboarding &amp; implementation
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dark-grey);">
+                  <span style="color:var(--green);font-weight:700;">✓</span> Ongoing customer success &amp; support
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dark-grey);">
+                  <span style="color:var(--green);font-weight:700;">✓</span> SSO
+                </div>
               </div>
             </div>
 
-            <div id="row_3yr_benefit" class="output" style="grid-column: 1 / -1; display:none; background:#f0faf8; border-radius:8px; padding:10px 14px;">
-              <span class="label" style="color:var(--green-dark); font-weight:600;">Benefit of 3-year contract
-                <span class="tip" data-tip="Amount saved annually vs standard 1-year pricing.">?</span>
-              </span>
-              <div class="value" id="out_3yr_benefit" style="color:var(--green-dark)">$0/yr</div>
-            </div>
-
-            <div class="output total" style="grid-column: 1 / -1;">
-              <span class="label">Total investment
-                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO.">?</span>
+            <!-- TOTAL -->
+            <div class="output total" style="grid-column: 1 / -1; margin-top:8px; padding-top:14px; border-top:2px solid var(--green-tint);">
+              <span class="label">Total investment (Year 1)
+                <span class="tip" data-tip="Annual subscription only. Onboarding, ongoing support, and SSO are included in the platform fee.">?</span>
               </span>
               <div class="value" id="out_investment">$0</div>
             </div>
@@ -1256,8 +1262,7 @@ const fmtPct = (n) => {
 const PLATFORM_FEE        = 25000;
 const PRICE_PER_ADD_LIC   = 1499;
 const INCLUDED_LICENSES   = 10;
-const ONBOARDING_FEE      = 4000;
-const SSO_FEE             = 2000;
+// Onboarding, SSO, and ongoing support are included in the platform fee — no separate line items.
 
 // Track whether user manually overrode the licenses field
 let licensesManuallyEdited = false;
@@ -1296,15 +1301,13 @@ function recalc() {
   const licenses    = num('totalLicenses');
   const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
   const termEl      = document.querySelector('input[name="contractTerm"]:checked');
-  const isThreeYear = termEl && termEl.value === '3';
-  // Base ($25k) = 3-year rate. 1-year = base × 1.30
-  const subscriptionBase = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC;
-  const subscription1yr  = subscriptionBase * 1.30;
+  const isThreeYear = !termEl || termEl.value === '3'; // 3-year is standard/default
+  // 3-year = standard rate ($25k base). 1-year = +30% premium on standard.
+  const subscriptionBase = PLATFORM_FEE + addLicenses * PRICE_PER_ADD_LIC; // standard (3-yr)
+  const subscription1yr  = subscriptionBase * 1.30;                          // 1-yr deviation
   const activeSubscription = isThreeYear ? subscriptionBase : subscription1yr;
-  const threeYrSavings   = subscription1yr - subscriptionBase; // how much cheaper 3yr is vs 1yr
-  const investment  = activeSubscription
-                    + ONBOARDING_FEE
-                    + SSO_FEE;
+  const oneYrPremium     = subscription1yr - subscriptionBase; // extra cost of going 1-yr
+  const investment       = activeSubscription; // onboarding, SSO, support all included in platform fee
 
   // ---- Tool savings ----
   const toolMem = members  * tools * costPerTool * 12;
@@ -1340,15 +1343,17 @@ function recalc() {
   const fte        = fteHours > 0 ? hrTotal / fteHours : 0;
 
   // ---- Paint outputs ----
-  $('out_addLicenses').textContent = fmtNum(addLicenses);
+  // Annual costs
+  $('out_platformFee').textContent = fmtUSD(PLATFORM_FEE); // always show base; premium shown separately
+  $('out_addLicenses').textContent = addLicenses > 0 ? fmtNum(addLicenses) + ' × ' + fmtUSD(PRICE_PER_ADD_LIC) + ' = ' + fmtUSD(addLicenses * PRICE_PER_ADD_LIC) : '0';
+  $('out_annualSub').textContent   = fmtUSD(activeSubscription) + '/yr';
+  // 1-year deviation row (only visible when 1-year is selected)
+  const deviationRow = document.getElementById('row_1yr_deviation');
+  const deviationVal = document.getElementById('out_1yr_deviation');
+  if (deviationRow) deviationRow.style.display = isThreeYear ? 'none' : '';
+  if (deviationVal) deviationVal.textContent = '+' + fmtUSD(oneYrPremium) + '/yr';
+  // Total
   $('out_investment').textContent  = fmtUSD(investment);
-  // Platform fee reflects selected term
-  $('out_platformFee').textContent = fmtUSD(isThreeYear ? subscriptionBase : subscription1yr);
-  // 3-year benefit row
-  const benefitRow = document.getElementById('row_3yr_benefit');
-  const benefitVal = document.getElementById('out_3yr_benefit');
-  if (benefitRow) benefitRow.style.display = isThreeYear ? '' : 'none';
-  if (benefitVal) benefitVal.textContent = fmtUSD(threeYrSavings) + '/yr';
 
   $('out_toolMem').textContent   = fmtUSD(toolMem);
   $('out_toolMgr').textContent   = fmtUSD(toolMgr);
