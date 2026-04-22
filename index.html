@@ -750,7 +750,7 @@ function loadOverview(){
     ?todayTouches.map(function(t){
         var cc=channelColor[t.channel]||'var(--muted)';
         var ic=channelIcon[t.channel]||'·';
-        return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:6px" onclick="loadTab(\'prospecting\');setTimeout(function(){openSavedSequence(\''+t.acctId+'\','+t.ci+')},300)">'+
+        return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:6px" onclick="switchTo(\'prospecting\');setTimeout(function(){openSavedSequence(\''+t.acctId+'\','+t.ci+')},300)">'+
           '<span style="font-size:13px;min-width:24px;text-align:center;padding:2px 7px;border-radius:10px;background:'+cc+'18;color:'+cc+';font-weight:700">'+ic+'</span>'+
           '<div style="flex:1;min-width:0">'+
             '<div style="font-weight:500;font-size:15px">'+esc(t.contactName)+' <span style="font-weight:400;color:var(--muted)">· '+esc(t.acctName)+'</span></div>'+
@@ -759,12 +759,12 @@ function loadOverview(){
           '<span style="font-size:13px;color:var(--accent);font-weight:500;white-space:nowrap">Open →</span>'+
         '</div>';
       }).join('')
-    :'<div style="font-size:15px;color:var(--muted);padding:.5rem 0">No touches scheduled for today — check your <a href="#" onclick="loadTab(\'prospecting\')" style="color:var(--accent)">Outbound queue</a>.</div>';
+    :'<div style="font-size:15px;color:var(--muted);padding:.5rem 0">No touches scheduled for today — check your <a href="#" onclick="event.preventDefault();switchTo(\'prospecting\')" style="color:var(--accent)">Outbound queue</a>.</div>';
 
   var staleHtml=staleAccounts.length
     ?staleAccounts.map(function(a){
         var days=Math.round((new Date()-new Date(a.lastTouched+'T12:00:00'))/86400000);
-        return'<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:5px" onclick="loadTab(\'prospecting\');setTimeout(function(){openAccountDrawer(\''+a.id+'\')},300)">'+
+        return'<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:5px" onclick="switchTo(\'prospecting\');setTimeout(function(){openAccountDrawer(\''+a.id+'\')},300)">'+
           '<div class="ob-tier-badge t'+a.tier+'">'+a.tier+'</div>'+
           '<div style="flex:1;font-size:15px;font-weight:500">'+esc(a.name)+'</div>'+
           '<div style="font-size:13px;color:#ef4444;font-weight:500">'+days+'d no touch</div>'+
@@ -815,7 +815,6 @@ function loadOverview(){
           '<div style="font-size:13px;color:var(--muted);margin-top:2px">Emails</div>'+
         '</div>'+
       '</div>'+
-      '<button class="btn-ghost btn-sm" onclick="logMeeting()" style="margin-top:.75rem;width:100%">+ Log a meeting booked</button>'+
     '</div>'+
 
     '</div>'+ // end 2-col grid
@@ -828,9 +827,9 @@ function loadOverview(){
 
     // ── QUICK ACTIONS ──
     '<div style="display:flex;gap:.75rem;flex-wrap:wrap">'+
-      '<button class="btn" onclick="loadTab(\'prospecting\')" style="font-size:15px">Go to Outbound →</button>'+
-      '<button class="btn-ghost" onclick="loadTab(\'tools\')" style="font-size:15px">✦ Opp Brief Builder</button>'+
-      '<button class="btn-ghost" onclick="loadTab(\'pipeline\')" style="font-size:15px">View Pipeline</button>'+
+      '<button class="btn" onclick="switchTo(\'prospecting\')" style="font-size:15px">Go to Outbound →</button>'+
+      '<button class="btn-ghost" onclick="switchTo(\'tools\')" style="font-size:15px">✦ Opp Brief Builder</button>'+
+      '<button class="btn-ghost" onclick="switchTo(\'pipeline\')" style="font-size:15px">View Pipeline</button>'+
     '</div>';
 
   // Load next meeting from calendar
@@ -860,7 +859,7 @@ function loadOverview(){
               '<div style="font-size:15px;font-weight:500;color:var(--accent2)">'+esc(next.title)+'</div>'+
               '<div style="font-size:15px;color:var(--muted);margin-top:2px">'+esc(next.time)+(next.duration?' · '+esc(next.duration):'')+'</div>'+
               '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+jp+
-              '<button class="btn-ghost btn-sm" onclick="loadTab(\'tools\');setTimeout(function(){prepMeeting('+JSON.stringify({title:next.title,time:next.time,attendees:extAttendees}).replace(/"/g,"'")+')" style="font-size:15px">🗒 Prep me</button>'+
+              '<button class="btn-ghost btn-sm" onclick="switchTo(\'tools\');setTimeout(function(){prepMeeting('+JSON.stringify({title:next.title,time:next.time,attendees:extAttendees}).replace(/"/g,"'")+')},300)" style="font-size:15px">🗒 Prep me</button>'+
               '</div>'+
             '</div></div>';
         }
@@ -887,7 +886,10 @@ function loadTools(){
 
     '<div id="tool-brief">'+buildOppBriefHTML()+'</div>'+
     '<div id="tool-roi" style="display:none">'+
-      '<iframe src="/roi-calculator.html" style="width:100%;height:calc(100vh - 220px);border:none;border-radius:10px;background:#fff"></iframe>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">'+
+        '<a href="/roi-calculator.html" target="_blank" class="btn-ghost" style="font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Open in browser</a>'+
+      '</div>'+
+      '<iframe src="/roi-calculator.html" style="width:100%;height:calc(100vh - 260px);border:none;border-radius:10px;background:#fff"></iframe>'+
     '</div>';
 
   renderSavedBriefsList();
