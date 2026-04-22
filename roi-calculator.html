@@ -681,7 +681,65 @@
     .card { box-shadow: none; page-break-inside: avoid; }
     .top-row { grid-template-columns: 1fr 1fr; }
     .middle-row { grid-template-columns: 1fr 1fr; }
+    #pain-panel, #pain-toggle { display: none !important; }
   }
+
+  /* ---------- Pain Points Panel ---------- */
+  #pain-toggle {
+    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 120px;
+    background: var(--green-deep); color: #b1d9d1;
+    border: none; border-radius: 8px 0 0 8px;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 10px 0;
+    z-index: 200; box-shadow: -2px 0 12px rgba(0,0,0,.12);
+    transition: background .15s;
+  }
+  #pain-toggle:hover { background: var(--green-dark); }
+
+  #pain-panel {
+    position: fixed; right: -420px; top: 0; bottom: 0; width: 400px;
+    background: #fff; border-left: 2px solid var(--light-grey-2);
+    box-shadow: -4px 0 24px rgba(0,0,0,.1);
+    z-index: 199; display: flex; flex-direction: column;
+    transition: right .25s ease; overflow: hidden;
+  }
+  #pain-panel.open { right: 0; }
+  #pain-toggle.open { right: 400px; }
+
+  .pain-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 20px 20px 12px; border-bottom: 1px solid var(--light-grey-2);
+    flex-shrink: 0;
+  }
+
+  #pain-textarea {
+    width: 100%; height: 160px; resize: vertical;
+    border: 1px solid var(--light-grey-2); border-radius: 8px;
+    padding: 10px 12px; font-size: 13px; font-family: inherit;
+    color: var(--near-black); background: var(--near-white);
+    outline: none; margin-bottom: 14px; line-height: 1.5;
+    flex-shrink: 0;
+  }
+  #pain-textarea:focus { border-color: var(--green); }
+
+  #pain-rendered {
+    flex: 1; overflow-y: auto; padding: 0 20px 20px;
+  }
+
+  .pain-item {
+    display: flex; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--light-grey-2); font-size: 14px;
+    line-height: 1.55; color: var(--near-black);
+  }
+  .pain-item:last-child { border-bottom: none; }
+  .pain-num {
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--green-deep); color: #b1d9d1;
+    font-size: 12px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center; margin-top: 1px;
+  }
+  #pain-edit-area { padding: 0 20px 0; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -1106,6 +1164,27 @@
   </div>
 </div>
 
+<!-- ============ PAIN POINTS PANEL ============ -->
+<button id="pain-toggle" onclick="togglePainPanel()" title="Discovery Pain Points">
+  <span id="pain-toggle-icon">◀</span>
+  <span style="writing-mode:vertical-rl;text-orientation:mixed;margin-top:8px;letter-spacing:.08em;font-size:11px;font-weight:700;text-transform:uppercase;">Pain Points</span>
+</button>
+
+<div id="pain-panel">
+  <div class="pain-header">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);margin-bottom:4px;">Discovery Pain Points</div>
+      <input id="pain-prospect" type="text" placeholder="Prospect name..." style="border:none;border-bottom:2px solid var(--light-grey-2);background:transparent;font-size:18px;font-weight:700;color:var(--near-black);width:100%;outline:none;padding:2px 0;font-family:inherit;" oninput="savePainPoints()" />
+    </div>
+    <button onclick="togglePainPanel()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--mid-grey-2);padding:4px;line-height:1;flex-shrink:0;">✕</button>
+  </div>
+  <div style="padding:10px 20px 0;flex-shrink:0;">
+    <div style="font-size:12px;color:var(--mid-grey-1);margin-bottom:6px;">One pain point per line · saves automatically</div>
+    <textarea id="pain-textarea" oninput="renderPainList();savePainPoints()" placeholder="Paste or type pain points here, one per line..."></textarea>
+  </div>
+  <div id="pain-rendered" style="flex:1;overflow-y:auto;padding:4px 20px 20px;"></div>
+</div>
+
 <script>
 // ------------------------------------------------------------------
 //  Cognota ROI calculator — live calculation
@@ -1304,6 +1383,66 @@ function resetDefaults() {
 
 setToday();
 recalc();
+
+// ── PAIN POINTS PANEL ──────────────────────────────────────────────
+const FAIRLIFE_DEFAULTS = `Intake is ad hoc and invisible — Casey: "we get things that just pop up two, three a week" — hallway conversations, someone spots an LD person and offloads a request on the spot. No standardized channel, no record of it happening.
+Requests go to the wrong person — Jacob: whoever hears the request first feels personally responsible for fulfilling it, even if it's not their area. No routing logic, no triage.
+No way to prioritize or say no — Jacob: "it's hard for us to say no to anything" — and when they do decline something, there's no data trail to quantify what they turned down or justify future headcount.
+Duplicate work across sites — Jacob: "I'm working on this thing and someone saying, well, we did that three months ago. Why didn't you just ask?" — three sites with no shared visibility into what each other is building.
+Strategy is loosely connected at best — Jacob: "loose alignment... nothing formal." They know their work connects to business goals somewhere but can't prove it or report on it.
+No capacity visibility — Jacob and Kevin both flagged this — no way to see who is at capacity, who has bandwidth, or where bottlenecks are forming with SMEs and ops techs. Kevin specifically called out Greg working with five different SMEs simultaneously with no tracking system.
+SME bottlenecks killing project velocity — Kevin: work instructions get submitted for SME review and then sit untouched for weeks. No visibility into where it's stalled, no way to follow up systematically. Webster startup made this acute.
+Ops techs and collaboration time is untracked — Jacob and Kevin went deep on this. Sarah did a work instruction that took 37 hours and nobody captured that. Ops techs get pulled mid-task, engineers contribute 15 minutes here and there, and none of that time is recorded. Makes it impossible to properly scope Project Ocho or any future plant startup.
+No way to justify headcount — Jacob: if they could show 160 hours/month of training coordination work, that justifies a coordinator hire. If it's 320, they know what two coordinators looks like. Right now they have no data to make that case.
+Webster built from scratch with no baseline — Kevin: "we're not mature enough in our processes there yet to even have intake." They don't know what they don't know. And now Project Ocho is coming and they have no data from the Webster build to scope it against.
+Monday.com isn't built for LD — Casey uses it but openly said "are we using it to its full capabilities? Probably not." It keeps them organized at a surface level but doesn't speak LD — no intake logic, no capacity, no strategy alignment.`;
+
+function togglePainPanel(){
+  var panel=document.getElementById('pain-panel');
+  var btn=document.getElementById('pain-toggle');
+  var icon=document.getElementById('pain-toggle-icon');
+  var isOpen=panel.classList.contains('open');
+  panel.classList.toggle('open',!isOpen);
+  btn.classList.toggle('open',!isOpen);
+  icon.textContent=isOpen?'◀':'▶';
+}
+
+function renderPainList(){
+  var ta=document.getElementById('pain-textarea');
+  var out=document.getElementById('pain-rendered');
+  if(!ta||!out)return;
+  var lines=ta.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  if(!lines.length){out.innerHTML='<div style="color:var(--mid-grey-1);font-size:14px;padding-top:8px;">No pain points yet — type or paste above.</div>';return;}
+  out.innerHTML=lines.map(function(line,i){
+    // Bold text up to first em-dash or colon if present
+    var formatted=line.replace(/^(.+?)\s*[—–-]{1,2}\s*/,'<strong>$1</strong> — ');
+    return'<div class="pain-item"><div class="pain-num">'+(i+1)+'</div><div>'+formatted+'</div></div>';
+  }).join('');
+}
+
+function savePainPoints(){
+  var prospect=(document.getElementById('pain-prospect').value||'').trim()||'default';
+  var text=document.getElementById('pain-textarea').value;
+  try{
+    localStorage.setItem('pain_'+prospect, text);
+    localStorage.setItem('pain_last_prospect', prospect);
+  }catch(e){}
+}
+
+function loadPainPoints(){
+  var lastProspect='';
+  try{ lastProspect=localStorage.getItem('pain_last_prospect')||''; }catch(e){}
+  // Default to Fairlife
+  var prospect=lastProspect||'Fairlife';
+  var text='';
+  try{ text=localStorage.getItem('pain_'+prospect)||''; }catch(e){}
+  if(!text && prospect==='Fairlife') text=FAIRLIFE_DEFAULTS;
+  document.getElementById('pain-prospect').value=prospect;
+  document.getElementById('pain-textarea').value=text;
+  renderPainList();
+}
+
+loadPainPoints();
 </script>
 </body>
 </html>
