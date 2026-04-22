@@ -1427,10 +1427,10 @@ function sendBriefChat(){
 
   var systemPrompt='You are refining an opportunity prep brief for Lee Fridman, an AE at Cognota.\n\n'+
     'The current brief is:\n\n'+_briefChat.briefText+'\n\n'+
-    'When Lee provides new information or asks you to change something:\n'+
-    '1. If it is new factual information (e.g. from SFDC, LinkedIn, a call), incorporate it by returning a FULL UPDATED BRIEF in exactly the same numbered-section format as above. Start your response with exactly: "UPDATED BRIEF:"\n'+
-    '2. If it is a question or a conversational request you can answer without rewriting the brief, answer conversationally. Do NOT start with "UPDATED BRIEF:" in that case.\n'+
-    'Keep all six sections. Be specific and use the new info throughout where relevant.';
+    'RULES — follow exactly:\n'+
+    '1. If Lee provides new factual information to incorporate (from SFDC, LinkedIn, a call, etc.), rewrite the FULL brief with that info woven in. Your ENTIRE response must begin with the exact string "UPDATED BRIEF:" (no preamble, no intro sentence, nothing before it). Then immediately write the full brief.\n'+
+    '2. If Lee asks a question or makes a conversational request that does not require rewriting the brief, answer conversationally. Do NOT include "UPDATED BRIEF:" anywhere in that response.\n'+
+    'Keep all sections. Be specific. No yapping before the brief when updating.';
 
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     model:'claude-sonnet-4-6',max_tokens:3000,stream:false,
@@ -1446,21 +1446,36 @@ function sendBriefChat(){
 
     _briefChat.messages.push({role:'assistant',content:reply});
 
-    if(reply.startsWith('UPDATED BRIEF:')){
-      // Extract the new brief text and re-render
-      var newBriefText=reply.replace(/^UPDATED BRIEF:\s*/i,'').trim();
+    // Detect UPDATED BRIEF — robust match: strip leading whitespace/markdown before checking
+    var cleanReply=reply.replace(/^[\s*_#]+/,'');
+    var isUpdate=/^UPDATED BRIEF:/i.test(cleanReply);
+
+    if(isUpdate){
+      // Strip the marker and any surrounding whitespace/markdown
+      var newBriefText=reply.replace(/^[\s\S]*?UPDATED BRIEF:\s*/i,'').trim();
+      _briefChat.briefText=newBriefText;
+      // Show a compact confirmation in the thread — NOT the raw brief text
       var confirmBubble=document.createElement('div');
       confirmBubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
-      confirmBubble.innerHTML='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;color:var(--text)">Brief updated with your new info ✓</div>';
+      confirmBubble.innerHTML=
+        '<div style="background:rgba(63,136,123,.08);border:1px solid rgba(63,136,123,.25);border-radius:12px 12px 12px 2px;padding:9px 14px;font-size:14px;color:var(--accent2);display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:16px">✓</span><span style="font-weight:500">Brief updated — scroll up to review</span>'+
+        '</div>';
       var th=document.getElementById('brief-chat-thread');
       if(th){th.appendChild(confirmBubble);th.scrollTop=th.scrollHeight;}
-      // Small delay so the user sees the confirmation before the re-render
-      setTimeout(function(){renderOpportunityBrief(newBriefText,_briefChat.briefLabel,true);},400);
+      // Re-render brief panel with new content, preserving chat history
+      setTimeout(function(){renderOpportunityBrief(newBriefText,_briefChat.briefLabel,true);},300);
     }else{
-      // Conversational reply — just show it in the thread
+      // Conversational reply — render with basic markdown so bold/bullets look right
+      var rendered=reply
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/\n\n/g,'</p><p style="margin:6px 0">')
+        .replace(/\n/g,'<br>');
       var replyBubble=document.createElement('div');
       replyBubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
-      replyBubble.innerHTML='<div style="max-width:85%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;line-height:1.55;color:var(--text)">'+esc(reply)+'</div>';
+      replyBubble.innerHTML='<div style="max-width:88%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:10px 14px;font-size:14px;line-height:1.6;color:var(--text)"><p style="margin:0">'+rendered+'</p></div>';
       var th2=document.getElementById('brief-chat-thread');
       if(th2){th2.appendChild(replyBubble);th2.scrollTop=th2.scrollHeight;}
     }
