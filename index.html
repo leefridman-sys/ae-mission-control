@@ -867,13 +867,25 @@ function loadOverview(){
       staleHtml+
     '</div>'+
 
-    // ── SAVED ROI CALCULATORS ──
-    '<div class="card" style="margin-bottom:1.25rem" id="ov-saved-calcs">'+
+    // ── TOOL OUTPUTS ──
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">'+
+
+    '<div class="card" id="ov-saved-briefs-card">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
+        '<div style="font-size:16px;font-weight:500">✦ Saved Opp Briefs</div>'+
+        '<button class="btn-ghost btn-sm" onclick="switchTo(\'tools\');showTool(\'brief\')" style="font-size:13px">+ New</button>'+
+      '</div>'+
+      '<div id="ov-saved-briefs-list"></div>'+
+    '</div>'+
+
+    '<div class="card" id="ov-saved-calcs">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
         '<div style="font-size:16px;font-weight:500">💾 Saved ROI Calculators</div>'+
         '<a href="/roi-calculator.html" target="_blank" class="btn-ghost btn-sm" style="font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">+ New</a>'+
       '</div>'+
       '<div id="ov-saved-calcs-list"></div>'+
+    '</div>'+
+
     '</div>'+
 
     // ── QUICK ACTIONS ──
@@ -1006,8 +1018,9 @@ function loadOverview(){
     }).catch(function(){});
   }
 
-  // Render saved ROI calculators from localStorage
+  // Render tool outputs
   renderSavedCalcs();
+  renderOvSavedBriefs();
 }
 
 function renderSavedCalcs(){
@@ -1032,6 +1045,29 @@ function renderSavedCalcs(){
       '</div>'+
       '<a href="/roi-calculator.html?snap='+encodeURIComponent(snap.id)+'" target="_blank" class="btn-ghost btn-sm" style="font-size:13px;text-decoration:none;white-space:nowrap">Open ↗</a>'+
       '<button onclick="deleteSavedCalc(\''+snap.id+'\')" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:2px 6px;line-height:1;" title="Delete">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+function renderOvSavedBriefs(){
+  var container=document.getElementById('ov-saved-briefs-list');
+  if(!container)return;
+  var briefs=load('opp_briefs',[]);
+  if(!briefs.length){
+    container.innerHTML='<div style="font-size:14px;color:var(--muted)">No saved briefs yet — <button class="btn-ghost btn-sm" onclick="switchTo(\'tools\');showTool(\'brief\')" style="font-size:13px">open the Brief Builder</button> to create one.</div>';
+    return;
+  }
+  container.innerHTML=briefs.map(function(b){
+    var parts=(b.label||'').split(' – ');
+    var company=parts[0]||b.label;
+    var sub=parts.slice(1).join(' – ');
+    return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:5px">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(company)+'</div>'+
+        (sub?'<div style="font-size:12px;color:var(--muted);margin-top:1px">'+esc(sub)+'</div>':'')+
+      '</div>'+
+      '<button class="btn-ghost btn-sm" onclick="switchTo(\'tools\');showTool(\'brief\');setTimeout(function(){loadSavedBrief('+b.id+')},300)" style="font-size:13px;white-space:nowrap">Open →</button>'+
+      '<button onclick="deleteSavedBrief('+b.id+');renderOvSavedBriefs();" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px 6px;" title="Delete">✕</button>'+
     '</div>';
   }).join('');
 }
@@ -1223,6 +1259,7 @@ function saveOpportunityBrief(text,label){
   save('opp_briefs',briefs);
   showToast(existing?'Brief updated!':'Brief saved!');
   renderSavedBriefsList();
+  renderOvSavedBriefs();
 }
 
 function renderSavedBriefsList(){
@@ -1267,6 +1304,7 @@ function deleteSavedBrief(id){
   var briefs=load('opp_briefs',[]).filter(function(x){return x.id!==id;});
   save('opp_briefs',briefs);
   renderSavedBriefsList();
+  renderOvSavedBriefs();
   showToast('Brief deleted');
 }
 
