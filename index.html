@@ -1146,7 +1146,7 @@ function loadSFForOverview(){
             '<div class="deal-amount">'+fmt$(d.amount)+'</div>'+
             '<div class="deal-meta" style="margin-top:6px">'+
               '<span class="badge badge-grey">'+esc(d.stage)+'</span>'+
-              (d.daysInStage!=null?'<span style="font-size:14px;color:var(--muted)" title="'+(d.oppAge!=null?d.oppAge+'d since created':'')+'">'+d.daysInStage+'d in stage</span>':'')+
+              (d.lastActivityDate?'<span style="font-size:14px;color:'+(Math.round((new Date()-new Date(d.lastActivityDate))/86400000)>14?'var(--amber)':'var(--muted)')+'">'+Math.round((new Date()-new Date(d.lastActivityDate))/86400000)+'d no activity</span>':'<span style="font-size:14px;color:var(--muted)">No activity logged</span>')+
             '</div>'+
           '</div>';
         }).join('')+'</div>';
@@ -1325,7 +1325,7 @@ function renderKanbanCard(d){
       '<span style="font-family:DM Mono,monospace;font-size:16px;font-weight:500;color:var(--accent2)">'+fmt$(d.amount)+'</span>'+
       '<span style="font-size:13px;font-family:DM Mono,monospace;color:'+dateColor+'">'+dateLabel+'</span>'+
     '</div>'+
-    (d.daysInStage!=null?'<div style="font-size:13px;color:var(--muted);margin-top:3px" title="'+(d.oppAge!=null?d.oppAge+'d since opp created':'')+'">'+d.daysInStage+'d in stage</div>':'')+
+    (d.lastActivityDate?'<div style="font-size:13px;color:'+(Math.round((new Date()-new Date(d.lastActivityDate))/86400000)>14?'var(--amber)':'var(--muted)')+';margin-top:3px">'+Math.round((new Date()-new Date(d.lastActivityDate))/86400000)+'d no activity</div>':'<div style="font-size:13px;color:var(--muted);margin-top:3px">No activity logged</div>')+
     '<button onclick="dealInsight('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="width:100%;margin-top:8px;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif">✦ What should I do next?</button>'+
   '</div>';
 }
@@ -1353,7 +1353,7 @@ function renderPipelineList(deals){
             '<div class="deal-company" style="margin-top:2px">'+esc(d.account)+'</div>'+
             '<div class="deal-meta">'+
               '<span class="badge badge-grey">'+esc(d.stage)+'</span>'+
-              (d.daysInStage!=null?'<span style="font-size:14px;color:var(--muted)" title="'+(d.oppAge!=null?d.oppAge+'d since opp created':'')+'">'+d.daysInStage+'d in stage</span>':'')+
+              (d.lastActivityDate?'<span style="font-size:14px;color:'+(Math.round((new Date()-new Date(d.lastActivityDate))/86400000)>14?'var(--amber)':'var(--muted)')+'">'+Math.round((new Date()-new Date(d.lastActivityDate))/86400000)+'d no activity</span>':'<span style="font-size:14px;color:var(--muted)">No activity logged</span>')+
               (d.nextStep?'<span style="font-size:14px;color:var(--text2)">Next: '+esc(d.nextStep.slice(0,60))+'</span>':'')+
             '</div>'+
           '</div>'+
@@ -1376,7 +1376,7 @@ function dealInsight(deal,evt){
     '<div id="insight-content"><div class="loading"><div class="spinner"></div><div>Claude is analysing...</div></div></div>'+
     '<div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Close</button></div>');
 
-  var prompt='Deal: '+deal.name+'\nAccount: '+deal.account+'\nStage: '+deal.stage+'\nAmount: '+fmt$(deal.amount)+'\nClose date: '+(deal.closeDate||'Not set')+'\nDays in current stage: '+(deal.daysInStage!=null?deal.daysInStage:'Unknown')+'\nOpportunity age: '+(deal.oppAge!=null?deal.oppAge+'d':'Unknown')+'\nNext step: '+(deal.nextStep||'None logged')+'\n'+(deal.gongSummary?'Last Gong call: '+deal.gongSummary+'\n':'')+
+  var prompt='Deal: '+deal.name+'\nAccount: '+deal.account+'\nStage: '+deal.stage+'\nAmount: '+fmt$(deal.amount)+'\nClose date: '+(deal.closeDate||'Not set')+'\nDays since last activity: '+(deal.lastActivityDate?Math.round((new Date()-new Date(deal.lastActivityDate))/86400000)+'d':'Unknown')+'\nNext step: '+(deal.nextStep||'None logged')+'\n'+(deal.gongSummary?'Last Gong call: '+deal.gongSummary+'\n':'')+
     '\nWhat is the single most important thing I should do next to advance this deal? Be specific — name the action, the person to contact, and what to say or send. Include a suggested message if relevant.';
 
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -2120,7 +2120,7 @@ function renderObScorecard(){
     '<div class="stat-card" style="'+cardStyle+'" onclick="showLocalActivityList(\'all\')"><div class="stat-label">Logged Touches (wk)</div><div class="stat-value">'+stats.all.length+'</div><div class="stat-sub" style="color:var(--accent)">↗ click to view</div></div>'+
     '<div class="stat-card" style="'+cardStyle+'" onclick="showLocalActivityList(\'calls\')"><div class="stat-label">Calls</div><div class="stat-value">'+stats.calls.length+'</div><div class="stat-sub" style="color:var(--amber)">↗ click to view</div></div>'+
     '<div class="stat-card" style="'+cardStyle+'" onclick="showLocalActivityList(\'emails\')"><div class="stat-label">Emails</div><div class="stat-value">'+stats.emails.length+'</div><div class="stat-sub" style="color:var(--sky)">↗ click to view</div></div>'+
-    '<div class="stat-card" style="'+cardStyle+'" onclick="logMeeting()"><div class="stat-label">Meetings Booked</div><div class="stat-value">'+meetings+'</div><div class="stat-sub" style="color:var(--accent)">+ click to log one</div></div>'+
+    '<div class="stat-card" style="'+cardStyle+'position:relative"><div class="stat-label">Meetings Booked</div><div class="stat-value">'+meetings+'</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px"><button onclick="event.stopPropagation();logMeeting()" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:1px 8px;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">+ log</button>'+(meetings>0?'<button onclick="event.stopPropagation();unlogMeeting()" style="background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 8px;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">− undo</button>':'')+' </div></div>'+
   '</div>';
 }
 
@@ -2155,6 +2155,13 @@ function logMeeting(){
   var n=(load('ob_meetings_wk',0)||0)+1;
   save('ob_meetings_wk',n);
   showToast('Meeting booked! 🎯 ('+n+' this week)');
+  renderObScorecard();
+}
+
+function unlogMeeting(){
+  var n=Math.max(0,(load('ob_meetings_wk',0)||0)-1);
+  save('ob_meetings_wk',n);
+  showToast('Meeting removed ('+n+' this week)');
   renderObScorecard();
 }
 
