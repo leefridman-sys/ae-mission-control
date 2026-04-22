@@ -867,6 +867,15 @@ function loadOverview(){
       staleHtml+
     '</div>'+
 
+    // ── SAVED ROI CALCULATORS ──
+    '<div class="card" style="margin-bottom:1.25rem" id="ov-saved-calcs">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
+        '<div style="font-size:16px;font-weight:500">💾 Saved ROI Calculators</div>'+
+        '<a href="/roi-calculator.html" target="_blank" class="btn-ghost btn-sm" style="font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">+ New</a>'+
+      '</div>'+
+      '<div id="ov-saved-calcs-list"></div>'+
+    '</div>'+
+
     // ── QUICK ACTIONS ──
     '<div style="display:flex;gap:.75rem;flex-wrap:wrap">'+
       '<button class="btn" onclick="switchTo(\'prospecting\')" style="font-size:15px">Go to Outbound →</button>'+
@@ -996,7 +1005,46 @@ function loadOverview(){
       }
     }).catch(function(){});
   }
+
+  // Render saved ROI calculators from localStorage
+  renderSavedCalcs();
 }
+
+function renderSavedCalcs(){
+  var container=document.getElementById('ov-saved-calcs-list');
+  if(!container)return;
+  var snapshots=[];
+  try{snapshots=JSON.parse(localStorage.getItem('roi_calculator_snapshots')||'[]');}catch(e){}
+  if(!snapshots.length){
+    container.innerHTML='<div style="font-size:15px;color:var(--muted)">No saved calculators yet — <a href="/roi-calculator.html" target="_blank" style="color:var(--accent)">open the calculator</a>, fill it in, and hit 💾 Save.</div>';
+    return;
+  }
+  container.innerHTML=snapshots.map(function(snap){
+    var d=new Date(snap.savedAt);
+    var dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    var roi=snap.data&&snap.data.roi?snap.data.roi:'';
+    var val=snap.data&&snap.data.valueTotal?snap.data.valueTotal:'';
+    var inv=snap.data&&snap.data.investment?snap.data.investment:'';
+    return'<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:6px">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:15px">'+escOv(snap.name)+'</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px">Saved '+dateStr+(roi?' · <span style="color:var(--accent2);font-weight:600">'+escOv(roi)+' ROI</span>':'')+(val?' · '+escOv(val)+' value':'')+(inv?' · '+escOv(inv)+' investment':'')+'</div>'+
+      '</div>'+
+      '<a href="/roi-calculator.html?snap='+encodeURIComponent(snap.id)+'" target="_blank" class="btn-ghost btn-sm" style="font-size:13px;text-decoration:none;white-space:nowrap">Open ↗</a>'+
+      '<button onclick="deleteSavedCalc(\''+snap.id+'\')" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:2px 6px;line-height:1;" title="Delete">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+function deleteSavedCalc(id){
+  var snapshots=[];
+  try{snapshots=JSON.parse(localStorage.getItem('roi_calculator_snapshots')||'[]');}catch(e){}
+  snapshots=snapshots.filter(function(s){return s.id!==id;});
+  try{localStorage.setItem('roi_calculator_snapshots',JSON.stringify(snapshots));}catch(e){}
+  renderSavedCalcs();
+}
+
+function escOv(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── AE TOOLS TAB ──────────────────────────────────────────────────────────
 function loadTools(){

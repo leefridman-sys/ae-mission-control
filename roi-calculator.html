@@ -807,9 +807,6 @@
     </div>
   </div>
 
-  <!-- ============ MAIN CONTENT + SNAPSHOTS SIDEBAR FLEX WRAPPER ============ -->
-  <div style="display:flex;gap:20px;align-items:flex-start;">
-  <div style="flex:1;min-width:0;">
 
   <!-- ============ TOP ROW: Inputs (left) + Investment Breakdown (right) ============ -->
   <div class="top-row">
@@ -1194,22 +1191,6 @@
   <!-- Pain points section — hidden on screen, shown on print -->
   <div id="pain-print-section"></div>
 
-  </div> <!-- end main content wrapper -->
-
-  <!-- ============ SNAPSHOTS SIDEBAR ============ -->
-  <div id="roi-snapshots-sidebar" style="width:220px;flex-shrink:0;position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto;">
-    <div style="background:#fff;border:1px solid var(--light-grey-2);border-radius:12px;overflow:hidden;">
-      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--light-grey-2);display:flex;align-items:center;gap:8px;">
-        <span style="font-size:15px;">💾</span>
-        <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);">Saved Calculators</span>
-      </div>
-      <div id="roi-snapshots-list" style="padding:8px 0;">
-        <div style="padding:10px 16px;font-size:13px;color:var(--mid-grey-1);">No saved calculators yet.</div>
-      </div>
-    </div>
-  </div>
-
-  </div> <!-- end flex wrapper -->
 
 </div>
 
@@ -1508,6 +1489,132 @@ function loadPainPoints(){
 }
 
 loadPainPoints();
+
+// ------------------------------------------------------------------
+//  SNAPSHOTS — save / load / delete calculator state
+// ------------------------------------------------------------------
+const SNAPSHOTS_KEY = 'roi_calculator_snapshots';
+
+function getSnapshots() {
+  try { return JSON.parse(localStorage.getItem(SNAPSHOTS_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function setSnapshots(arr) {
+  try { localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+function saveSnapshot() {
+  // Auto-name from customer name field; fall back to date
+  var customerName = ($('customerName').value || '').trim();
+  var name = customerName || ('Snapshot ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+  var contractTermEl = document.querySelector('input[name="contractTerm"]:checked');
+
+  var data = {
+    // Header
+    customerName: $('customerName').value,
+    quoteDate: $('quoteDate').value,
+    // Inputs
+    teamMembers: $('teamMembers').value,
+    teamManagers: $('teamManagers').value,
+    memberSalary: $('memberSalary').value,
+    managerSalary: $('managerSalary').value,
+    disparateTools: $('disparateTools').value,
+    costPerTool: $('costPerTool').value,
+    memberMinSaved: $('memberMinSaved').value,
+    projectsPerManager: $('projectsPerManager').value,
+    managerMinSaved: $('managerMinSaved').value,
+    annualBudget: $('annualBudget').value,
+    // Investment
+    totalLicenses: $('totalLicenses').value,
+    licensesManuallyEdited: licensesManuallyEdited,
+    contractTerm: contractTermEl ? contractTermEl.value : '3',
+    // Assumptions
+    workDays: $('workDays').value,
+    annualHours: $('annualHours').value,
+    benefitsMult: $('benefitsMult').value,
+    budgetRecoveredPct: $('budgetRecoveredPct').value,
+    productivityPct: $('productivityPct').value,
+    fteHours: $('fteHours').value,
+    // Pain points
+    painProspect: ($('pain-prospect') || {}).value || '',
+    painText: ($('pain-textarea') || {}).value || '',
+    // Snapshot of key outputs for dashboard display
+    roi: ($('out_roi') || {}).textContent || '',
+    valueTotal: ($('out_valueTotal') || {}).textContent || '',
+    investment: ($('out_investment') || {}).textContent || ''
+  };
+
+  var snapshots = getSnapshots();
+  // Overwrite if same name already exists
+  var existingIdx = snapshots.findIndex(function(s){ return s.name === name; });
+  var entry = { id: Date.now().toString(), name: name, savedAt: new Date().toISOString(), data: data };
+  if (existingIdx >= 0) {
+    entry.id = snapshots[existingIdx].id;
+    snapshots[existingIdx] = entry;
+  } else {
+    snapshots.unshift(entry);
+  }
+  setSnapshots(snapshots);
+
+  // Brief visual confirmation on the button
+  var btn = document.querySelector('[onclick="saveSnapshot()"]');
+  if (btn) {
+    var orig = btn.textContent;
+    btn.textContent = '✓ Saved!';
+    setTimeout(function(){ btn.textContent = orig; }, 1800);
+  }
+}
+
+function loadSnapshot(id) {
+  var snapshots = getSnapshots();
+  var snap = snapshots.find(function(s){ return s.id === id; });
+  if (!snap) return;
+  var d = snap.data;
+
+  // Restore header
+  $('customerName').value = d.customerName || '';
+  $('quoteDate').value = d.quoteDate || '';
+  // Restore inputs
+  var fields = ['teamMembers','teamManagers','memberSalary','managerSalary',
+    'disparateTools','costPerTool','memberMinSaved','projectsPerManager',
+    'managerMinSaved','annualBudget','totalLicenses',
+    'workDays','annualHours','benefitsMult','budgetRecoveredPct','productivityPct','fteHours'];
+  fields.forEach(function(f){ if ($(f) && d[f] !== undefined) $(f).value = d[f]; });
+
+  // Contract term radio
+  var termVal = d.contractTerm || '3';
+  var radios = document.querySelectorAll('input[name="contractTerm"]');
+  radios.forEach(function(r){ r.checked = (r.value === termVal); });
+
+  licensesManuallyEdited = !!d.licensesManuallyEdited;
+
+  // Pain points
+  if ($('pain-prospect')) $('pain-prospect').value = d.painProspect || '';
+  if ($('pain-textarea')) $('pain-textarea').value = d.painText || '';
+  renderPainList();
+
+  recalc();
+  updateCompanyTips();
+}
+
+function deleteSnapshot(id) {
+  var snapshots = getSnapshots().filter(function(s){ return s.id !== id; });
+  setSnapshots(snapshots);
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-load snapshot from URL param: roi-calculator.html?snap=<id>
+(function(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var snapId = params.get('snap');
+    if (snapId) loadSnapshot(snapId);
+  } catch(e) {}
+})();
 
 // Populate pain points print section before PDF export
 window.addEventListener('beforeprint', function(){
