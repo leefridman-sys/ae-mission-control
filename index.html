@@ -1064,13 +1064,53 @@ function loadTools(){
 
     '<div id="tool-brief">'+buildOppBriefHTML()+'</div>'+
     '<div id="tool-roi" style="display:none">'+
-      '<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">'+
-        '<a href="/roi-calculator.html" target="_blank" class="btn-ghost" style="font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Open in browser</a>'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem">'+
+        '<button class="btn-ghost" onclick="openLatestCalc()" style="font-size:14px">↗ Open in new tab</button>'+
+        '<span style="font-size:13px;color:var(--muted)">Fill in the calculator, hit 💾 Save, then open a clean tab to walk prospects through.</span>'+
       '</div>'+
-      '<iframe src="/roi-calculator.html" style="width:100%;height:calc(100vh - 260px);border:none;border-radius:10px;background:#fff"></iframe>'+
+      '<iframe id="roi-iframe" src="/roi-calculator.html" style="width:100%;height:calc(100vh - 320px);border:none;border-radius:10px;background:#fff"></iframe>'+
+      '<div style="margin-top:1rem">'+
+        '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.5rem">Saved calculators</div>'+
+        '<div id="tool-roi-saved-list"></div>'+
+      '</div>'+
     '</div>';
 
   renderSavedBriefsList();
+}
+
+function openLatestCalc(){
+  var snapshots=[];
+  try{snapshots=JSON.parse(localStorage.getItem('roi_calculator_snapshots')||'[]');}catch(e){}
+  if(snapshots.length){
+    window.open('/roi-calculator.html?snap='+encodeURIComponent(snapshots[0].id),'_blank');
+  } else {
+    window.open('/roi-calculator.html','_blank');
+  }
+}
+
+function renderToolRoiSaved(){
+  var container=document.getElementById('tool-roi-saved-list');
+  if(!container)return;
+  var snapshots=[];
+  try{snapshots=JSON.parse(localStorage.getItem('roi_calculator_snapshots')||'[]');}catch(e){}
+  if(!snapshots.length){
+    container.innerHTML='<div style="font-size:14px;color:var(--muted)">No saved calculators yet — fill out the calculator above and hit 💾 Save.</div>';
+    return;
+  }
+  container.innerHTML=snapshots.map(function(snap){
+    var d=new Date(snap.savedAt);
+    var dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    var roi=snap.data&&snap.data.roi?snap.data.roi:'';
+    var val=snap.data&&snap.data.valueTotal?snap.data.valueTotal:'';
+    return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:5px">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:14px">'+escOv(snap.name)+'</div>'+
+        '<div style="font-size:12px;color:var(--muted)">Saved '+dateStr+(roi?' · <span style="color:var(--accent2);font-weight:600">'+escOv(roi)+' ROI</span>':'')+(val?' · '+escOv(val)+' value':'')+'</div>'+
+      '</div>'+
+      '<a href="/roi-calculator.html?snap='+encodeURIComponent(snap.id)+'" target="_blank" class="btn-ghost btn-sm" style="font-size:13px;text-decoration:none;white-space:nowrap">Open ↗</a>'+
+      '<button onclick="deleteSavedCalc(\''+snap.id+'\');renderToolRoiSaved();" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px 6px;" title="Delete">✕</button>'+
+    '</div>';
+  }).join('');
 }
 
 function showTool(name){
@@ -1079,6 +1119,7 @@ function showTool(name){
   document.getElementById('tool-tab-brief').className=name==='brief'?'btn':'btn-ghost';
   document.getElementById('tool-tab-roi').className=name==='roi'?'btn':'btn-ghost';
   if(name==='brief')renderSavedBriefsList();
+  if(name==='roi')renderToolRoiSaved();
 }
 
 function buildOppBriefHTML(){
@@ -3896,6 +3937,14 @@ checkFirstRun();
 // Load overview on start
 tabLoaded['overview']=true;
 loadOverview();
+
+// Refresh saved calcs list when the ROI iframe posts a save event
+window.addEventListener('message', function(e){
+  if(e.data && e.data.type === 'roi_saved'){
+    renderToolRoiSaved();
+    renderSavedCalcs();
+  }
+});
 
 // ── SETTINGS MODAL ────────────────────────────────────────────────────────
 function openSettingsModal(){

@@ -1557,6 +1557,9 @@ function saveSnapshot() {
   }
   setSnapshots(snapshots);
 
+  // Notify parent dashboard to refresh its saved calcs list
+  try { window.parent.postMessage({ type: 'roi_saved' }, '*'); } catch(e) {}
+
   // Brief visual confirmation on the button
   var btn = document.querySelector('[onclick="saveSnapshot()"]');
   if (btn) {
