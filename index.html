@@ -1111,14 +1111,18 @@ function buildOpportunityBrief(){
 function saveOpportunityBrief(text,label){
   if(!text){showToast('Nothing to save');return;}
   var briefs=load('opp_briefs',[]);
-  var entry={id:Date.now(),label:label,text:text,savedAt:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
-  briefs.unshift(entry);
-  if(briefs.length>20)briefs=briefs.slice(0,20);
+  var savedAt=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  // Update existing entry with the same label instead of creating a duplicate
+  var existing=briefs.find(function(b){return b.label===label;});
+  if(existing){
+    existing.text=text;
+    existing.savedAt=savedAt;
+  }else{
+    briefs.unshift({id:Date.now(),label:label,text:text,savedAt:savedAt});
+    if(briefs.length>20)briefs=briefs.slice(0,20);
+  }
   save('opp_briefs',briefs);
-  var output=document.getElementById('opp-brief-output');
-  if(output)output.innerHTML='';
-  _currentBrief={text:'',label:''};
-  showToast('Brief saved!');
+  showToast(existing?'Brief updated!':'Brief saved!');
   renderSavedBriefsList();
 }
 
@@ -1180,10 +1184,15 @@ function renameSavedBrief(id){
   showToast('Brief renamed');
 }
 
-function renderOpportunityBrief(text,label){
+var _briefChat={messages:[],briefText:'',briefLabel:''};
+
+function renderOpportunityBrief(text,label,preserveChat){
   var output=document.getElementById('opp-brief-output');
   if(!output)return;
   _currentBrief={text:text,label:label};
+  // Reset chat when a brand new brief is loaded, preserve it during refinements
+  if(!preserveChat){_briefChat={messages:[],briefText:text,briefLabel:label};}
+  else{_briefChat.briefText=text;_briefChat.briefLabel=label;}
   var emailMatch=text.match(/6\.\s*DRAFT INTRO EMAIL\s*\n([\s\S]+?)$/i);
   var emailText=emailMatch?emailMatch[1].trim():'';
   var sections=text.split(/\n(?=\d\.\s+[A-Z])/);
@@ -1205,6 +1214,19 @@ function renderOpportunityBrief(text,label){
   }).join('');
 
   var createdOn=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  // Build chat thread HTML from existing messages
+  var chatThreadHtml=_briefChat.messages.map(function(m){
+    if(m.role==='user'){
+      return'<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
+        '<div style="max-width:80%;background:var(--accent);color:#fff;border-radius:12px 12px 2px 12px;padding:9px 13px;font-size:14px;line-height:1.55">'+esc(m.content)+'</div>'+
+      '</div>';
+    }else{
+      return'<div style="display:flex;justify-content:flex-start;margin-bottom:8px">'+
+        '<div style="max-width:85%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;line-height:1.55;color:var(--text)">'+esc(m.content)+'</div>'+
+      '</div>';
+    }
+  }).join('');
+
   output.innerHTML=
     '<div class="card" style="margin-bottom:1.5rem;border-left:3px solid var(--accent)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem">'+
@@ -1220,7 +1242,96 @@ function renderOpportunityBrief(text,label){
         '</div>'+
       '</div>'+
       html+
+    '</div>'+
+
+    // ── BRIEF REFINEMENT CHAT ──
+    '<div class="card" style="border:1px solid rgba(100,200,170,.25)">'+
+      '<div style="font-size:14px;font-weight:600;color:var(--accent2);margin-bottom:.65rem;display:flex;align-items:center;gap:6px">'+
+        '<span>💬</span> Refine this brief'+
+      '</div>'+
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">'+
+        'Add a nugget from SFDC, LinkedIn, or anywhere else — Claude will update the brief in place.'+
+      '</div>'+
+      // chat thread
+      '<div id="brief-chat-thread" style="margin-bottom:.75rem">'+chatThreadHtml+'</div>'+
+      '<div style="display:flex;gap:8px;align-items:flex-end">'+
+        '<textarea id="brief-chat-input" rows="2" placeholder="e.g. Found in SFDC: they had a closed-lost opp in 2022 for $18k, budget cuts. L&D team has grown from 3 to 9 since then." '+
+          'style="flex:1;resize:vertical;font-size:14px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit" '+
+          'onkeydown="if(event.key===\'Enter\'&&(event.metaKey||event.ctrlKey)){event.preventDefault();sendBriefChat();}"></textarea>'+
+        '<button class="btn btn-sm" onclick="sendBriefChat()" style="flex-shrink:0;padding:8px 14px;font-size:14px;align-self:flex-end">Send ↵</button>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-top:5px">⌘ Enter to send</div>'+
     '</div>';
+}
+
+function sendBriefChat(){
+  var input=document.getElementById('brief-chat-input');
+  if(!input)return;
+  var userMsg=input.value.trim();
+  if(!userMsg)return;
+  input.value='';
+
+  // Append user message to state and render it immediately
+  _briefChat.messages.push({role:'user',content:userMsg});
+  var thread=document.getElementById('brief-chat-thread');
+  if(thread){
+    var userBubble=document.createElement('div');
+    userBubble.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px';
+    userBubble.innerHTML='<div style="max-width:80%;background:var(--accent);color:#fff;border-radius:12px 12px 2px 12px;padding:9px 13px;font-size:14px;line-height:1.55">'+esc(userMsg)+'</div>';
+    thread.appendChild(userBubble);
+    // Thinking indicator
+    var thinking=document.createElement('div');
+    thinking.id='brief-chat-thinking';
+    thinking.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
+    thinking.innerHTML='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;color:var(--muted)">Updating brief…</div>';
+    thread.appendChild(thinking);
+    thread.scrollTop=thread.scrollHeight;
+  }
+
+  var systemPrompt='You are refining an opportunity prep brief for Lee Fridman, an AE at Cognota.\n\n'+
+    'The current brief is:\n\n'+_briefChat.briefText+'\n\n'+
+    'When Lee provides new information or asks you to change something:\n'+
+    '1. If it is new factual information (e.g. from SFDC, LinkedIn, a call), incorporate it by returning a FULL UPDATED BRIEF in exactly the same numbered-section format as above. Start your response with exactly: "UPDATED BRIEF:"\n'+
+    '2. If it is a question or a conversational request you can answer without rewriting the brief, answer conversationally. Do NOT start with "UPDATED BRIEF:" in that case.\n'+
+    'Keep all six sections. Be specific and use the new info throughout where relevant.';
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:3000,stream:false,
+    system:systemPrompt,
+    messages:_briefChat.messages
+  })}).then(function(r){return r.json();}).then(function(res){
+    var reply=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
+    if(!reply){reply='Sorry, I couldn\'t update the brief. Try again.';}
+
+    // Remove thinking indicator
+    var thinkEl=document.getElementById('brief-chat-thinking');
+    if(thinkEl)thinkEl.remove();
+
+    _briefChat.messages.push({role:'assistant',content:reply});
+
+    if(reply.startsWith('UPDATED BRIEF:')){
+      // Extract the new brief text and re-render
+      var newBriefText=reply.replace(/^UPDATED BRIEF:\s*/i,'').trim();
+      var confirmBubble=document.createElement('div');
+      confirmBubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
+      confirmBubble.innerHTML='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;color:var(--text)">Brief updated with your new info ✓</div>';
+      var th=document.getElementById('brief-chat-thread');
+      if(th){th.appendChild(confirmBubble);th.scrollTop=th.scrollHeight;}
+      // Small delay so the user sees the confirmation before the re-render
+      setTimeout(function(){renderOpportunityBrief(newBriefText,_briefChat.briefLabel,true);},400);
+    }else{
+      // Conversational reply — just show it in the thread
+      var replyBubble=document.createElement('div');
+      replyBubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:8px';
+      replyBubble.innerHTML='<div style="max-width:85%;background:var(--bg);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:9px 13px;font-size:14px;line-height:1.55;color:var(--text)">'+esc(reply)+'</div>';
+      var th2=document.getElementById('brief-chat-thread');
+      if(th2){th2.appendChild(replyBubble);th2.scrollTop=th2.scrollHeight;}
+    }
+  }).catch(function(e){
+    var thinkEl=document.getElementById('brief-chat-thinking');
+    if(thinkEl)thinkEl.remove();
+    showToast('Could not reach Claude — try again');
+  });
 }
 
 function saveBriefEmailDraft(emailText){
