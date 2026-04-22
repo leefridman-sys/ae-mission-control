@@ -802,9 +802,14 @@
 
     <div class="topbar-actions">
       <button class="btn btn-secondary" onclick="resetDefaults()">Reset</button>
+      <button class="btn btn-secondary" onclick="saveSnapshot()" style="background:var(--green-tint);color:var(--green-deep);border-color:var(--green-light);">💾 Save</button>
       <button class="btn btn-primary" onclick="window.print()">Export / Print PDF</button>
     </div>
   </div>
+
+  <!-- ============ MAIN CONTENT + SNAPSHOTS SIDEBAR FLEX WRAPPER ============ -->
+  <div style="display:flex;gap:20px;align-items:flex-start;">
+  <div style="flex:1;min-width:0;">
 
   <!-- ============ TOP ROW: Inputs (left) + Investment Breakdown (right) ============ -->
   <div class="top-row">
@@ -1188,6 +1193,24 @@
 
   <!-- Pain points section — hidden on screen, shown on print -->
   <div id="pain-print-section"></div>
+
+  </div> <!-- end main content wrapper -->
+
+  <!-- ============ SNAPSHOTS SIDEBAR ============ -->
+  <div id="roi-snapshots-sidebar" style="width:220px;flex-shrink:0;position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto;">
+    <div style="background:#fff;border:1px solid var(--light-grey-2);border-radius:12px;overflow:hidden;">
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--light-grey-2);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:15px;">💾</span>
+        <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mid-grey-2);">Saved Calculators</span>
+      </div>
+      <div id="roi-snapshots-list" style="padding:8px 0;">
+        <div style="padding:10px 16px;font-size:13px;color:var(--mid-grey-1);">No saved calculators yet.</div>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- end flex wrapper -->
+
 </div>
 
 <!-- ============ PAIN POINTS PANEL ============ -->
