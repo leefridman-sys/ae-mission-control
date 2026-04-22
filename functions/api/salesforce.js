@@ -63,11 +63,39 @@ export async function onRequest(context) {
       const errObj = Array.isArray(data) ? data[0] : data;
       if (errObj && errObj.errorCode) return new Response(JSON.stringify({ error: errObj.message || errObj.errorCode }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 
-      const deals = (data.records || []).map(opp => {
-        // Calculate days in stage using LastModifiedDate heuristic
+      const oppRecords = data.records || [];
+      const now = new Date();
+
+      // Fetch stage history for all opps to compute real "days in current stage"
+      let stageEnteredMap = {}; // oppId -> date when current stage was entered
+      if (oppRecords.length > 0) {
+        const oppIds = oppRecords.map(o => `'${o.Id}'`).join(',');
+        const histSoql = encodeURIComponent(
+          `SELECT OpportunityId, StageName, CreatedDate FROM OpportunityHistory
+           WHERE OpportunityId IN (${oppIds}) AND StageName != null
+           ORDER BY CreatedDate ASC`
+        );
+        try {
+          const histRes = await fetch(`${apiBase}/query/?q=${histSoql}`, { headers: h });
+          const histData = await histRes.json();
+          if (histData.records) {
+            // For each opp, find the most recent history entry where StageName matches the current stage
+            for (const opp of oppRecords) {
+              const entries = histData.records.filter(h => h.OpportunityId === opp.Id && h.StageName === opp.StageName);
+              if (entries.length > 0) {
+                // First entry where this stage appears = when the opp entered this stage
+                stageEnteredMap[opp.Id] = new Date(entries[0].CreatedDate);
+              }
+            }
+          }
+        } catch(e) { /* history query failed, fall back to CreatedDate */ }
+      }
+
+      const deals = oppRecords.map(opp => {
         const created = new Date(opp.CreatedDate);
-        const now = new Date();
-        const daysInStage = Math.round((now - created) / 86400000);
+        const oppAge = Math.round((now - created) / 86400000); // days since opp was created
+        const stageEntered = stageEnteredMap[opp.Id] || created;
+        const daysInStage = Math.round((now - stageEntered) / 86400000);
 
         return {
           id: opp.Id,
@@ -79,6 +107,7 @@ export async function onRequest(context) {
           closeDate: opp.CloseDate,
           nextStep: opp.NextStep || '',
           lastActivityDate: opp.LastActivityDate,
+          oppAge: oppAge,
           daysInStage: daysInStage
         };
       });

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cognota ROI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=Vollkorn:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Cognota brand tokens ---------- */
+  :root {
+    --near-white: #F6F8F9;
+    --light-grey-1: #EAEFF1;
+    --light-grey-2: #D7E1E5;
+    --light-grey-3: #BFCFD6;
+    --mid-grey-1: #A0B0B5;
+    --mid-grey-2: #708183;
+    --dark-grey: #415351;
+    --near-black: #02150E;
+
+    --green-tint: #B1D9D1;
+    --green-light: #55AC9B;
+    --green: #3F887B;
+    --green-dark: #327569;
+    --green-deep: #1B3F39;
+
+    --magenta: #9B3A66;
+    --orange: #E46136;
+
+    --shadow-sm: 0 1px 2px rgba(2, 21, 14, 0.06);
+    --shadow-md: 0 4px 12px rgba(2, 21, 14, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--near-white);
+    color: var(--near-black);
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Vollkorn', Georgia, serif;
+    font-weight: 700;
+    margin: 0;
+    color: var(--near-black);
+  }
+
+  /* Force lining (uniform-height) numerals everywhere so "1" doesn't read as "I" */
+  input[type="number"],
+  .value,
+  .value-input,
+  .hero-stat .value {
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
+  }
+
+  /* ---------- Layout ---------- */
+  .app {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--green);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Vollkorn', serif;
+    font-weight: 700;
+    font-size: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .brand-title {
+    font-family: 'Vollkorn', serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--near-black);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-sub {
+    font-size: 12px;
+    color: var(--mid-grey-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .customer-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .customer-meta label {
+    font-size: 12px;
+    color: var(--mid-grey-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  .customer-meta input {
+    border: 1px solid var(--light-grey-2);
+    background: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--near-black);
+    min-width: 220px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .customer-meta input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(63, 136, 123, 0.15);
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  button.btn {
+    font-family: 'Nunito Sans', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.06s, background 0.15s, box-shadow 0.15s;
+    box-shadow: var(--shadow-sm);
+  }
+
+  button.btn-primary {
+    background: var(--green);
+    color: white;
+  }
+
+  button.btn-primary:hover { background: var(--green-dark); }
+
+  button.btn-secondary {
+    background: white;
+    color: var(--dark-grey);
+    border: 1px solid var(--light-grey-2);
+  }
+
+  button.btn-secondary:hover { background: var(--near-white); }
+
+  button.btn:active { transform: translateY(1px); }
+
+  /* ---------- Layout rows ---------- */
+  .top-row {
+    display: grid;
+    grid-template-columns: minmax(340px, 1.1fr) minmax(320px, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .middle-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 16px;
+  }
+
+  .bottom-row {
+    margin-bottom: 16px;
+  }
+
+  .section-divider {
+    border: none;
+    border-top: 2px solid var(--light-grey-2);
+    margin: 28px 0 20px;
+  }
+
+  @media (max-width: 1200px) {
+    .middle-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 900px) {
+    .top-row { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .middle-row { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Card ---------- */
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    /* overflow: visible so tooltips can extend beyond the card edges */
+    margin-bottom: 16px;
+    border: 1px solid var(--light-grey-1);
+  }
+
+  .card-header {
+    background: var(--green);
+    color: white;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+  }
+
+  .card-header h2 {
+    color: white;
+    font-family: 'Vollkorn', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .card-header .hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .card-body {
+    padding: 18px;
+    background: var(--light-grey-1);
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
+  }
+
+  /* ---------- Inputs ---------- */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 520px) {
+    .field-grid { grid-template-columns: 1fr; }
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-grey);
+    line-height: 1.3;
+    min-height: 34px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .field .input-wrap {
+    position: relative;
+  }
+
+  .field input {
+    width: 100%;
+    border: 1px solid var(--light-grey-2);
+    background: white;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--near-black);
+    font-weight: 600;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(63, 136, 123, 0.15);
+  }
+
+  .field input.with-prefix { padding-left: 26px; }
+  .field .prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mid-grey-2);
+    font-weight: 700;
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  /* ---------- Output rows ---------- */
+  .output-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px 20px;
+  }
+
+  .output {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .output .label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark-grey);
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .output .value {
+    font-family: 'Vollkorn', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--near-black);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .output.editable .value-input {
+    font-family: 'Vollkorn', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--near-black);
+    background: white;
+    border: 1px solid var(--light-grey-2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .output.editable .value-input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(63, 136, 123, 0.15);
+  }
+
+  .output .value-input.with-prefix-output { padding-left: 22px; }
+
+  .output.total .label {
+    color: var(--green-deep);
+  }
+
+  .output.total .value {
+    color: var(--green-deep);
+  }
+
+  .output.highlight .value {
+    color: var(--green-dark);
+  }
+
+  /* ---------- Tooltip ---------- */
+  .tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--light-grey-2);
+    color: var(--dark-grey);
+    font-size: 10px;
+    font-weight: 800;
+    font-family: 'Nunito Sans', sans-serif;
+    cursor: help;
+    position: relative;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .tip:hover { background: var(--green-light); color: white; }
+
+  .tip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--near-black);
+    color: white;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: 'Nunito Sans', sans-serif;
+    line-height: 1.4;
+    padding: 8px 10px;
+    border-radius: 6px;
+    width: max-content;
+    max-width: 280px;
+    white-space: normal;
+    text-align: left;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 20;
+    box-shadow: var(--shadow-md);
+  }
+
+  .tip::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 3px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--near-black);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 20;
+  }
+
+  .tip:hover::after, .tip:hover::before { opacity: 1; }
+
+  /* ---------- Big summary (ROI & Payback) ---------- */
+  .hero-card {
+    max-width: 1150px;
+    margin: 0 auto;
+    box-shadow: 0 16px 40px rgba(50, 117, 105, 0.18),
+                0 4px 14px rgba(2, 21, 14, 0.08);
+    border: 1px solid rgba(63, 136, 123, 0.35);
+  }
+  .hero-card .card-header { background: var(--green-deep); padding: 14px 22px; }
+  .hero-card .card-body { background: white; padding: 26px 26px 28px; }
+
+  /* Top row — supporting stats */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .hero-stat {
+    padding: 18px 20px;
+    background: linear-gradient(135deg, var(--green-tint) 0%, rgba(177, 217, 209, 0.35) 100%);
+    border-radius: 10px;
+    border-left: 4px solid var(--green);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 110px;
+  }
+
+  .hero-stat .label {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--green-deep);
+    line-height: 1.35;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .hero-stat .value {
+    font-family: 'Vollkorn', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--near-black);
+    margin-top: 10px;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    word-break: break-word;
+  }
+
+  /* Featured ROI headline — the climax */
+  .hero-featured {
+    text-align: center;
+    padding: 34px 24px 30px;
+    background:
+      radial-gradient(circle at 92% 12%, rgba(255,255,255,0.16), transparent 35%),
+      linear-gradient(135deg, var(--green-deep) 0%, var(--green-dark) 55%, var(--green) 100%);
+    border-radius: 14px;
+    color: white;
+    position: relative;
+  }
+
+  .hero-featured-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--green-tint);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-featured-value {
+    font-family: 'Vollkorn', serif;
+    font-size: 96px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+    margin: 14px 0 8px;
+    letter-spacing: -0.035em;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
+  }
+
+  .hero-featured-sub {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .hero-featured .tip {
+    background: rgba(255, 255, 255, 0.22);
+    color: white;
+  }
+  .hero-featured .tip:hover { background: rgba(255, 255, 255, 0.35); }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero-featured-value { font-size: 76px; }
+  }
+
+  @media (max-width: 520px) {
+    .hero-grid { grid-template-columns: 1fr 1fr; }
+    .hero-featured-value { font-size: 60px; }
+    .hero-stat .value { font-size: 24px; }
+  }
+
+  .hero-stat.accent {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    border-left: 4px solid var(--green-deep);
+  }
+
+  .hero-stat.accent .label, .hero-stat.accent .value { color: white; }
+  .hero-stat.accent .tip { background: rgba(255,255,255,0.25); color: white; }
+
+  /* ---------- Assumptions panel ---------- */
+  details.assumptions {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    margin-top: 8px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--light-grey-1);
+    overflow: hidden;
+  }
+
+  details.assumptions > summary {
+    cursor: pointer;
+    padding: 14px 18px;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--dark-grey);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    list-style: none;
+  }
+
+  details.assumptions > summary::-webkit-details-marker { display: none; }
+
+  details.assumptions > summary::before {
+    content: '+';
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--green);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  details.assumptions[open] > summary::before { content: '−'; }
+
+  .assumptions-body {
+    padding: 8px 18px 20px;
+    background: var(--near-white);
+    border-top: 1px solid var(--light-grey-1);
+  }
+
+  .assumptions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+  }
+
+  .assumptions-note {
+    font-size: 12px;
+    color: var(--mid-grey-2);
+    margin-top: 14px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  /* ---------- Disclaimer ---------- */
+  .disclaimer {
+    background: var(--light-grey-1);
+    border-left: 4px solid var(--mid-grey-1);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 20px 0 24px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--dark-grey);
+  }
+
+  .disclaimer strong {
+    color: var(--near-black);
+    font-weight: 800;
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    body { background: white; }
+    .app { max-width: 100%; padding: 0; }
+    .topbar-actions, details.assumptions > summary::before { display: none !important; }
+    details.assumptions[open] > summary { display: none; }
+    .card { box-shadow: none; page-break-inside: avoid; }
+    .top-row { grid-template-columns: 1fr 1fr; }
+    .middle-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <div class="brand-title">Cognota ROI Calculator</div>
+        <div class="brand-sub">Your LearnOps Platform</div>
+      </div>
+    </div>
+
+    <div class="customer-meta">
+      <div>
+        <label for="customerName">Customer</label>
+        <input type="text" id="customerName" placeholder="Prospect / Company name" />
+      </div>
+      <div>
+        <label for="quoteDate">Date</label>
+        <input type="text" id="quoteDate" />
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-secondary" onclick="resetDefaults()">Reset</button>
+      <button class="btn btn-primary" onclick="window.print()">Export / Print PDF</button>
+    </div>
+  </div>
+
+  <!-- ============ TOP ROW: Inputs (left) + Investment Breakdown (right) ============ -->
+  <div class="top-row">
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="card-header"><h2>Your Current Tools & Resources</h2></div>
+        <div class="card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label for="teamMembers">Number of team members</label>
+              <div class="input-wrap">
+                <input type="number" id="teamMembers" value="8" min="0" step="1" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="teamManagers">Number of team managers</label>
+              <div class="input-wrap">
+                <input type="number" id="teamManagers" value="3" min="0" step="1" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="memberSalary">Average team member salary, USD</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="memberSalary" class="with-prefix" value="65000" min="0" step="1000" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="managerSalary">Average team manager salary, USD</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="managerSalary" class="with-prefix" value="90000" min="0" step="1000" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="disparateTools">Number of disparate tools used (that can be eliminated)</label>
+              <div class="input-wrap">
+                <input type="number" id="disparateTools" value="0" min="0" step="1" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="costPerTool">Average cost per month per tool per employee, USD</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="costPerTool" class="with-prefix" value="0" min="0" step="1" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="memberMinSaved">Time savings per team member per day, in minutes</label>
+              <div class="input-wrap">
+                <input type="number" id="memberMinSaved" value="10" min="0" step="1" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="projectsPerManager">Average number of projects each manager is involved in at any time</label>
+              <div class="input-wrap">
+                <input type="number" id="projectsPerManager" value="6" min="0" step="1" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="managerMinSaved">Time savings per manager per project per day, in minutes</label>
+              <div class="input-wrap">
+                <input type="number" id="managerMinSaved" value="30" min="0" step="1" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="annualBudget">Estimated annual L&amp;D budget, USD</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="annualBudget" class="with-prefix" value="1000000" min="0" step="1000" />
+              </div>
+            </div>
+
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="adminFTEs">L&amp;D admin / ops FTEs today (people doing intake, request tracking, status reporting, scheduling, etc.)</label>
+              <div class="input-wrap">
+                <input type="number" id="adminFTEs" value="1" min="0" step="0.25" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVESTMENT BREAKDOWN (sits to the right of inputs) -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Investment Breakdown</h2>
+          <span class="hint">These fields are editable</span>
+        </div>
+        <div class="card-body">
+          <div class="output-grid">
+            <div class="output editable">
+              <span class="label">Total Cognota licenses needed
+                <span class="tip" data-tip="Auto-populates from Team members + Team managers. Override here if you want to propose a different license count for the quote.">?</span>
+              </span>
+              <input type="number" id="totalLicenses" class="value-input" value="11" min="0" step="1" />
+            </div>
+
+            <div class="output">
+              <span class="label">Platform fee (includes 10 licenses)
+                <span class="tip" data-tip="Cognota annual platform fee. Includes the first 10 licenses.">?</span>
+              </span>
+              <div class="value" id="out_platformFee">$25,000</div>
+            </div>
+
+            <div class="output">
+              <span class="label">Additional licenses needed
+                <span class="tip" data-tip="Licenses beyond the 10 included in the platform fee. Formula: max(0, Total licenses − 10).">?</span>
+              </span>
+              <div class="value" id="out_addLicenses">0</div>
+            </div>
+
+            <div class="output">
+              <span class="label">Price per additional license
+                <span class="tip" data-tip="$1,499 per additional license per year (list price).">?</span>
+              </span>
+              <div class="value" id="out_pricePerLic">$1,499</div>
+            </div>
+
+            <div class="output">
+              <span class="label">Onboarding (one-time)
+                <span class="tip" data-tip="One-time onboarding fee covering implementation, configuration, and initial enablement.">?</span>
+              </span>
+              <div class="value" id="out_onboarding">$4,000</div>
+            </div>
+
+            <div class="output">
+              <span class="label">SSO (one-time)
+                <span class="tip" data-tip="One-time single sign-on setup fee.">?</span>
+              </span>
+              <div class="value" id="out_sso">$2,000</div>
+            </div>
+
+            <div class="output total" style="grid-column: 1 / -1;">
+              <span class="label">Total investment
+                <span class="tip" data-tip="Platform fee + (Additional licenses × Price per license) + Onboarding + SSO.">?</span>
+              </span>
+              <div class="value" id="out_investment">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </div> <!-- /.top-row -->
+
+  <hr class="section-divider" />
+
+  <!-- ============ MIDDLE ROW: Savings & Productivity ============ -->
+  <div class="middle-row">
+
+      <!-- Disparate tools savings -->
+      <div class="card">
+        <div class="card-header"><h2>Cost Savings on Disparate Tools, USD (Annual)</h2></div>
+        <div class="card-body">
+          <div class="output-grid">
+            <div class="output">
+              <span class="label">Team members
+                <span class="tip" data-tip="Members × Disparate tools × Monthly cost per tool × 12 months.">?</span>
+              </span>
+              <div class="value" id="out_toolMem">$0</div>
+            </div>
+            <div class="output">
+              <span class="label">Team managers
+                <span class="tip" data-tip="Managers × Disparate tools × Monthly cost per tool × 12 months.">?</span>
+              </span>
+              <div class="value" id="out_toolMgr">$0</div>
+            </div>
+            <div class="output total" style="grid-column: 1 / -1;">
+              <span class="label">Total</span>
+              <div class="value" id="out_toolTotal">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time savings hours -->
+      <div class="card">
+        <div class="card-header"><h2>Time Savings, Hours (Annual)</h2></div>
+        <div class="card-body">
+          <div class="output-grid">
+            <div class="output">
+              <span class="label">Team member time savings
+                <span class="tip" data-tip="Members × Minutes saved/day × Working days/year ÷ 60.">?</span>
+              </span>
+              <div class="value" id="out_hrMem">0</div>
+            </div>
+            <div class="output">
+              <span class="label">Team manager time savings
+                <span class="tip" data-tip="Managers × Projects/manager × Minutes saved/project/day × Working days/year ÷ 60.">?</span>
+              </span>
+              <div class="value" id="out_hrMgr">0</div>
+            </div>
+            <div class="output">
+              <span class="label">Admin time savings
+                <span class="tip" data-tip="L&D admin/ops FTEs × Annual FTE hours × % of admin time recovered. Scales with the customer's actual admin footprint — no hard-coded baseline.">?</span>
+              </span>
+              <div class="value" id="out_hrAdmin">0</div>
+            </div>
+            <div class="output total">
+              <span class="label">Total hours saved</span>
+              <div class="value" id="out_hrTotal">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time savings cost -->
+      <div class="card">
+        <div class="card-header"><h2>Time Savings, Cost (Annual, USD)</h2></div>
+        <div class="card-body">
+          <div class="output-grid">
+            <div class="output">
+              <span class="label">Team member cost savings
+                <span class="tip" data-tip="Member hours saved × loaded member hourly rate. Loaded rate = salary × benefits multiplier ÷ annual FTE hours.">?</span>
+              </span>
+              <div class="value" id="out_costMem">$0</div>
+            </div>
+            <div class="output">
+              <span class="label">Team manager cost savings
+                <span class="tip" data-tip="Manager hours saved × loaded manager hourly rate. Loaded rate = salary × benefits multiplier ÷ annual FTE hours.">?</span>
+              </span>
+              <div class="value" id="out_costMgr">$0</div>
+            </div>
+            <div class="output">
+              <span class="label">Admin cost savings
+                <span class="tip" data-tip="Admin hours × loaded member hourly rate. Assumes admin work is absorbed by team members.">?</span>
+              </span>
+              <div class="value" id="out_costAdmin">$0</div>
+            </div>
+            <div class="output total">
+              <span class="label">Total time-cost savings</span>
+              <div class="value" id="out_costTotal">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Productivity -->
+      <div class="card">
+        <div class="card-header"><h2>Productivity Value (Budget Impact)</h2></div>
+        <div class="card-body">
+          <div class="output-grid">
+            <div class="output">
+              <span class="label">Budget value recovered
+                <span class="tip" data-tip="Default 5% of annual L&D budget recovered by eliminating duplicated work, abandoned projects, and mis-aligned spend. Adjust under Assumptions.">?</span>
+              </span>
+              <div class="value" id="out_budgetRec">$0</div>
+            </div>
+            <div class="output">
+              <span class="label">Increased productivity value
+                <span class="tip" data-tip="Default 2% of annual L&D budget, representing uplift from better resource utilization and faster project delivery. Adjust under Assumptions.">?</span>
+              </span>
+              <div class="value" id="out_prodVal">$0</div>
+            </div>
+            <div class="output total" style="grid-column: 1 / -1;">
+              <span class="label">Total productivity value</span>
+              <div class="value" id="out_prodTotal">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </div> <!-- /.middle-row -->
+
+  <!-- ============ BOTTOM ROW: Cognota ROI & Payback (full width) ============ -->
+  <div class="bottom-row">
+
+      <!-- ROI summary hero -->
+      <div class="card hero-card">
+        <div class="card-header"><h2>Cognota ROI &amp; Payback</h2></div>
+        <div class="card-body">
+          <!-- Supporting stats (top row) -->
+          <div class="hero-grid">
+            <div class="hero-stat">
+              <span class="label">Added FTE capacity
+                <span class="tip" data-tip="Total hours saved ÷ Annual FTE hours (default 2,080). A measure of how much team capacity is freed up.">?</span>
+              </span>
+              <div class="value" id="out_fte">0</div>
+            </div>
+            <div class="hero-stat">
+              <span class="label">Months to payback
+                <span class="tip" data-tip="Total investment ÷ (One-year value ÷ 12). How quickly Cognota pays for itself.">?</span>
+              </span>
+              <div class="value" id="out_payback">0</div>
+            </div>
+            <div class="hero-stat">
+              <span class="label">One-year value created
+                <span class="tip" data-tip="Tool cost savings + Time-cost savings + Productivity value.">?</span>
+              </span>
+              <div class="value" id="out_valueTotal">$0</div>
+            </div>
+            <div class="hero-stat">
+              <span class="label">Monthly cost of waiting
+                <span class="tip" data-tip="One-year value ÷ 12. The value you forfeit for every month a decision is delayed.">?</span>
+              </span>
+              <div class="value" id="out_wait">$0</div>
+            </div>
+          </div>
+
+          <!-- Featured ROI (the headline) -->
+          <div class="hero-featured">
+            <span class="hero-featured-label">One-Year Return on Investment
+              <span class="tip" data-tip="(One-year value − Total investment) ÷ Total investment × 100%.">?</span>
+            </span>
+            <div class="hero-featured-value" id="out_roi">0%</div>
+            <span class="hero-featured-sub">Projected return in the first 12 months with Cognota</span>
+          </div>
+        </div>
+      </div>
+
+  </div> <!-- /.bottom-row -->
+
+  <!-- ============ ASSUMPTIONS ============ -->
+  <details class="assumptions">
+    <summary>Advanced Assumptions &amp; Defaults</summary>
+    <div class="assumptions-body">
+      <p style="margin:0; font-size:13px; color: var(--dark-grey);">
+        All defaults reflect Cognota's standard ROI model. Adjust any value to match the customer's situation — outputs recalculate live.
+      </p>
+      <div class="assumptions-grid">
+        <div class="field">
+          <label for="workDays">Working days per year</label>
+          <input type="number" id="workDays" value="250" min="1" step="1" />
+        </div>
+        <div class="field">
+          <label for="annualHours">Annual FTE hours (for hourly rate)</label>
+          <input type="number" id="annualHours" value="2080" min="1" step="1" />
+        </div>
+        <div class="field">
+          <label for="benefitsMult">Benefits / overhead multiplier</label>
+          <input type="number" id="benefitsMult" value="1.2" min="1" step="0.05" />
+        </div>
+        <div class="field">
+          <label for="adminRecoveryPct">% of admin time recovered with Cognota</label>
+          <input type="number" id="adminRecoveryPct" value="30" min="0" max="100" step="5" />
+        </div>
+        <div class="field">
+          <label for="budgetRecoveredPct">Budget value recovered (% of budget)</label>
+          <input type="number" id="budgetRecoveredPct" value="5" min="0" step="0.5" />
+        </div>
+        <div class="field">
+          <label for="productivityPct">Increased productivity (% of budget)</label>
+          <input type="number" id="productivityPct" value="2" min="0" step="0.5" />
+        </div>
+        <div class="field">
+          <label for="fteHours">FTE capacity denominator (hours / FTE)</label>
+          <input type="number" id="fteHours" value="2080" min="1" step="1" />
+        </div>
+      </div>
+      <div class="assumptions-note">
+        Note: Loaded hourly rate = Salary × Benefits multiplier ÷ Annual FTE hours. Example: $65,000 × 1.2 ÷ 2,080 = $37.50/hr. Admin cost savings = L&amp;D admin/ops FTEs × Annual FTE hours × % recovered × loaded member rate.
+      </div>
+    </div>
+  </details>
+
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> The ROI and financial figures shown in this tool are estimates only. They are based on data from Cognota customers, industry research, and expert input. Your actual ROI may differ. Cognota is not responsible for the accuracy or outcomes of these estimates.
+  </div>
+</div>
+
+<script>
+// ------------------------------------------------------------------
+//  Cognota ROI calculator — live calculation
+// ------------------------------------------------------------------
+
+const $ = (id) => document.getElementById(id);
+const num = (id) => parseFloat($(id).value) || 0;
+
+const fmtUSD = (n) => {
+  if (!isFinite(n)) return '$0';
+  const rounded = Math.round(n);
+  return '$' + rounded.toLocaleString('en-US');
+};
+
+const fmtNum = (n, decimals = 0) => {
+  if (!isFinite(n)) return '0';
+  return Number(n).toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
+
+const fmtPct = (n) => {
+  if (!isFinite(n)) return '0%';
+  return Math.round(n).toLocaleString('en-US') + '%';
+};
+
+// ---- Hard-coded pricing ----
+const PLATFORM_FEE        = 25000;
+const PRICE_PER_ADD_LIC   = 1499;
+const INCLUDED_LICENSES   = 10;
+const ONBOARDING_FEE      = 4000;
+const SSO_FEE             = 2000;
+
+// Track whether user manually overrode the licenses field
+let licensesManuallyEdited = false;
+
+function recalc() {
+  // ---- Read inputs ----
+  const members     = num('teamMembers');
+  const managers    = num('teamManagers');
+  const memberSal   = num('memberSalary');
+  const managerSal  = num('managerSalary');
+  const tools       = num('disparateTools');
+  const costPerTool = num('costPerTool');
+  const memberMin   = num('memberMinSaved');
+  const projects    = num('projectsPerManager');
+  const managerMin  = num('managerMinSaved');
+  const budget      = num('annualBudget');
+  const adminFTEs   = num('adminFTEs');
+
+  // ---- Assumptions ----
+  const workDays      = num('workDays');
+  const annualHrs     = num('annualHours') || 2080;
+  const benefitsMult  = num('benefitsMult') || 1;
+  const adminRecPct   = num('adminRecoveryPct') / 100;
+  const budgetRecPct  = num('budgetRecoveredPct') / 100;
+  const prodPct       = num('productivityPct') / 100;
+  const fteHours      = num('fteHours') || 2080;
+
+  // ---- Admin hours saved is now DERIVED from customer inputs, not hard-coded ----
+  const adminHours = adminFTEs * annualHrs * adminRecPct;
+
+  // ---- Investment ----
+  // Auto-populate licenses from members + managers unless user overrode
+  if (!licensesManuallyEdited) {
+    $('totalLicenses').value = members + managers;
+  }
+  const licenses    = num('totalLicenses');
+  const addLicenses = Math.max(0, licenses - INCLUDED_LICENSES);
+  const investment  = PLATFORM_FEE
+                    + addLicenses * PRICE_PER_ADD_LIC
+                    + ONBOARDING_FEE
+                    + SSO_FEE;
+
+  // ---- Tool savings ----
+  const toolMem = members  * tools * costPerTool * 12;
+  const toolMgr = managers * tools * costPerTool * 12;
+  const toolTotal = toolMem + toolMgr;
+
+  // ---- Hours saved ----
+  const hrMem   = (members * memberMin * workDays) / 60;
+  const hrMgr   = (managers * projects * managerMin * workDays) / 60;
+  const hrAdmin = adminHours;
+  const hrTotal = hrMem + hrMgr + hrAdmin;
+
+  // ---- Loaded hourly rates ----
+  const memberRate  = (memberSal  * benefitsMult) / annualHrs;
+  const managerRate = (managerSal * benefitsMult) / annualHrs;
+
+  // ---- Cost savings ----
+  const costMem   = hrMem   * memberRate;
+  const costMgr   = hrMgr   * managerRate;
+  const costAdmin = hrAdmin * memberRate;
+  const costTotal = costMem + costMgr + costAdmin;
+
+  // ---- Productivity value ----
+  const budgetRec = budget * budgetRecPct;
+  const prodVal   = budget * prodPct;
+  const prodTotal = budgetRec + prodVal;
+
+  // ---- Roll-ups ----
+  const valueTotal = toolTotal + costTotal + prodTotal;
+  const roi        = investment > 0 ? ((valueTotal - investment) / investment) * 100 : 0;
+  const payback    = valueTotal > 0 ? investment / (valueTotal / 12) : 0;
+  const monthlyVal = valueTotal / 12;
+  const fte        = fteHours > 0 ? hrTotal / fteHours : 0;
+
+  // ---- Paint outputs ----
+  $('out_addLicenses').textContent = fmtNum(addLicenses);
+  $('out_investment').textContent  = fmtUSD(investment);
+
+  $('out_toolMem').textContent   = fmtUSD(toolMem);
+  $('out_toolMgr').textContent   = fmtUSD(toolMgr);
+  $('out_toolTotal').textContent = fmtUSD(toolTotal);
+
+  $('out_hrMem').textContent   = fmtNum(Math.round(hrMem));
+  $('out_hrMgr').textContent   = fmtNum(Math.round(hrMgr));
+  $('out_hrAdmin').textContent = fmtNum(Math.round(hrAdmin));
+  $('out_hrTotal').textContent = fmtNum(Math.round(hrTotal));
+
+  $('out_costMem').textContent   = fmtUSD(costMem);
+  $('out_costMgr').textContent   = fmtUSD(costMgr);
+  $('out_costAdmin').textContent = fmtUSD(costAdmin);
+  $('out_costTotal').textContent = fmtUSD(costTotal);
+
+  $('out_budgetRec').textContent = fmtUSD(budgetRec);
+  $('out_prodVal').textContent   = fmtUSD(prodVal);
+  $('out_prodTotal').textContent = fmtUSD(prodTotal);
+
+  $('out_roi').textContent        = fmtPct(roi);
+  $('out_fte').textContent        = fmtNum(fte, 1);
+  $('out_payback').textContent    = fmtNum(Math.max(0, Math.round(payback * 10) / 10), 1);
+  $('out_valueTotal').textContent = fmtUSD(valueTotal);
+  $('out_wait').textContent       = fmtUSD(monthlyVal);
+}
+
+// ------------------------------------------------------------------
+//  Wire up live recalc
+// ------------------------------------------------------------------
+const watchedIds = [
+  // inputs
+  'teamMembers','teamManagers','memberSalary','managerSalary',
+  'disparateTools','costPerTool','memberMinSaved','projectsPerManager',
+  'managerMinSaved','annualBudget','adminFTEs',
+  // assumptions
+  'workDays','annualHours','benefitsMult','adminRecoveryPct',
+  'budgetRecoveredPct','productivityPct','fteHours'
+];
+
+watchedIds.forEach(id => $(id).addEventListener('input', recalc));
+
+// Total licenses — editable override that decouples from members+managers
+$('totalLicenses').addEventListener('input', () => {
+  licensesManuallyEdited = true;
+  recalc();
+});
+
+// Initial date + recalc
+function setToday() {
+  const d = new Date();
+  const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+  $('quoteDate').value = d.toLocaleDateString('en-US', opts);
+}
+
+function resetDefaults() {
+  const defaults = {
+    teamMembers: 8, teamManagers: 3,
+    memberSalary: 65000, managerSalary: 90000,
+    disparateTools: 0, costPerTool: 0,
+    memberMinSaved: 10, projectsPerManager: 6, managerMinSaved: 30,
+    annualBudget: 1000000, adminFTEs: 1,
+    workDays: 250, annualHours: 2080, benefitsMult: 1.2,
+    adminRecoveryPct: 30, budgetRecoveredPct: 5, productivityPct: 2,
+    fteHours: 2080
+  };
+  Object.entries(defaults).forEach(([k,v]) => { $(k).value = v; });
+  $('customerName').value = '';
+  licensesManuallyEdited = false; // re-link licenses to members + managers
+  setToday();
+  recalc();
+}
+
+setToday();
+recalc();
+</script>
+</body>
+</html>

@@ -288,10 +288,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   </div>
   <div class="nav-tabs" id="nav-tabs">
     <button class="nav-tab active" data-tab="overview">Overview</button>
+    <button class="nav-tab" data-tab="prospecting">Outbound</button>
     <button class="nav-tab" data-tab="pipeline">Pipeline <span class="conn-dot off" id="dot-sf"></span></button>
     <button class="nav-tab" data-tab="meetings">Meetings <span class="conn-dot off" id="dot-gc"></span></button>
-    <button class="nav-tab" data-tab="prospecting">Outbound</button>
     <button class="nav-tab" data-tab="gong">Gong <span class="conn-dot off" id="dot-gong"></span></button>
+    <button class="nav-tab" data-tab="tools">AE Tools</button>
   </div>
   <div class="nav-right">
     <div>
@@ -324,6 +325,9 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 
 <!-- GONG -->
 <div class="panel" id="panel-gong"></div>
+
+<!-- AE TOOLS -->
+<div class="panel" id="panel-tools"></div>
 
 </main>
 
@@ -402,6 +406,7 @@ function loadTab(id){
   else if(id==='meetings')loadMeetings();
   else if(id==='prospecting')loadProspecting();
   else if(id==='gong')loadGong();
+  else if(id==='tools')loadTools();
 }
 
 // ── GOOGLE PILL + STATUS DOTS ─────────────────────────────────────────────
@@ -706,60 +711,133 @@ function loadOverview(){
   var pst=getPST();var h=pst.getHours();
   var tod=h<12?'morning':h<17?'afternoon':'evening';
   var name=getAEName();
-  var dateStr=pst.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',weekday:'long',month:'long',day:'numeric'});
+  var dateStr=pst.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  var todayStr=new Date().toISOString().slice(0,10);
+  var monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // ── TODAY'S EXECUTION QUEUE ──
+  var todayTouches=[];
+  getObAccounts().forEach(function(acct){
+    (acct.contacts||[]).forEach(function(c,ci){
+      (c.touches||[]).forEach(function(t){
+        if(t.scheduledDate===todayStr&&!t.completedDate){
+          todayTouches.push({acctId:acct.id,ci:ci,acctName:acct.name,contactName:c.name,channel:t.channel,num:t.num,subject:t.subject||''});
+        }
+      });
+    });
+  });
+
+  // ── PIPELINE ALERTS ──
+  var accounts=getObAccounts();
+  var staleAccounts=accounts.filter(function(a){
+    if(!a.lastTouched)return false;
+    var d=new Date(a.lastTouched+'T12:00:00');
+    var days=Math.round((new Date()-d)/86400000);
+    return days>=7&&a.status!=='dead'&&a.status!=='booked';
+  }).sort(function(a,b){
+    return new Date(a.lastTouched)-new Date(b.lastTouched);
+  }).slice(0,5);
+
+  // ── WEEKLY STATS ──
+  var stats=getLocalActivityStats();
+  var meetings=load('ob_meetings_wk',0)||0;
+
+  // ── PIPELINE: deals closing this month ──
+  var channelIcon={'Email':'✉','LinkedIn DM':'in','Call':'☎'};
+  var channelColor={'Email':'var(--sky)','LinkedIn DM':'#0077b5','Call':'var(--amber)'};
+
+  var touchQueueHtml=todayTouches.length
+    ?todayTouches.map(function(t){
+        var cc=channelColor[t.channel]||'var(--muted)';
+        var ic=channelIcon[t.channel]||'·';
+        return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:6px" onclick="loadTab(\'prospecting\');setTimeout(function(){openSavedSequence(\''+t.acctId+'\','+t.ci+')},300)">'+
+          '<span style="font-size:13px;min-width:24px;text-align:center;padding:2px 7px;border-radius:10px;background:'+cc+'18;color:'+cc+';font-weight:700">'+ic+'</span>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:500;font-size:15px">'+esc(t.contactName)+' <span style="font-weight:400;color:var(--muted)">· '+esc(t.acctName)+'</span></div>'+
+            '<div style="font-size:13px;color:var(--muted)">Touch '+t.num+' · '+esc(t.channel)+(t.subject?' · '+esc(t.subject):'')+'</div>'+
+          '</div>'+
+          '<span style="font-size:13px;color:var(--accent);font-weight:500;white-space:nowrap">Open →</span>'+
+        '</div>';
+      }).join('')
+    :'<div style="font-size:15px;color:var(--muted);padding:.5rem 0">No touches scheduled for today — check your <a href="#" onclick="loadTab(\'prospecting\')" style="color:var(--accent)">Outbound queue</a>.</div>';
+
+  var staleHtml=staleAccounts.length
+    ?staleAccounts.map(function(a){
+        var days=Math.round((new Date()-new Date(a.lastTouched+'T12:00:00'))/86400000);
+        return'<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;margin-bottom:5px" onclick="loadTab(\'prospecting\');setTimeout(function(){openAccountDrawer(\''+a.id+'\')},300)">'+
+          '<div class="ob-tier-badge t'+a.tier+'">'+a.tier+'</div>'+
+          '<div style="flex:1;font-size:15px;font-weight:500">'+esc(a.name)+'</div>'+
+          '<div style="font-size:13px;color:#ef4444;font-weight:500">'+days+'d no touch</div>'+
+        '</div>';
+      }).join('')
+    :'<div style="font-size:15px;color:var(--muted)">All accounts touched in the last 7 days ✓</div>';
 
   el.innerHTML=
-    '<div style="margin-bottom:1.5rem">'+
-      '<h1 style="font-size:26px;font-weight:300;letter-spacing:-.5px">Good '+tod+', '+esc(name)+'.</h1>'+
-      '<p style="font-size:16px;color:var(--muted);margin-top:4px">'+dateStr+' · Pacific Time</p>'+
+    '<div style="margin-bottom:1.5rem;display:flex;align-items:baseline;justify-content:space-between">'+
+      '<div>'+
+        '<h1 style="font-size:26px;font-weight:300;letter-spacing:-.5px;margin:0">Good '+tod+', '+esc(name)+'.</h1>'+
+        '<p style="font-size:15px;color:var(--muted);margin-top:4px">'+dateStr+'</p>'+
+      '</div>'+
     '</div>'+
 
-    // TODAY strip
+    // ── NEXT MEETING ──
     '<div id="ov-next-meeting" style="margin-bottom:1.25rem"></div>'+
 
-    '<div style="display:flex;gap:1.5rem;align-items:flex-start">'+
-    '<div style="flex:1;min-width:0">'+  // LEFT COLUMN — main content
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">'+
 
-    // OPPORTUNITY BRIEF BUILDER — primary feature
-    '<div class="card" style="margin-bottom:1.5rem;border:1px solid rgba(100,200,170,.2)">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.25rem">'+
-        '<span style="font-size:15px;color:var(--accent)">✦</span>'+
-        '<div style="font-size:15px;font-weight:500">New Opportunity Brief</div>'+
+    // ── TODAY'S TOUCHES ──
+    '<div class="card">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">'+
+        '<div style="font-size:16px;font-weight:500">Today\'s touches</div>'+
+        (todayTouches.length?'<span style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 9px;font-size:13px;font-weight:600">'+todayTouches.length+'</span>':'<span style="font-size:13px;color:var(--muted)">none scheduled</span>')+
       '</div>'+
-      '<div style="font-size:15px;color:var(--muted);margin-bottom:1.1rem;line-height:1.65">'+
-        'Paste your notes from listening to Adam\'s call — or paste the email exchange thread. Claude builds your complete prep: what we know so far (for the deck), discovery questions, demo focus, and a draft intro email.'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
-        '<div class="form-row"><label class="form-label">Prospect name</label><input id="opp-name" type="text" placeholder="Sarah Johnson"></div>'+
-        '<div class="form-row"><label class="form-label">Company</label><input id="opp-company" type="text" placeholder="Acme Corp"></div>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
-        '<div class="form-row"><label class="form-label">Meeting date</label><input id="opp-date" type="text" placeholder="e.g. April 21"></div>'+
-        '<div class="form-row"><label class="form-label">Website / LinkedIn (optional)</label><input id="opp-url" type="text" placeholder="acme.com"></div>'+
-      '</div>'+
-      '<div class="form-row" style="margin-bottom:12px">'+
-        '<label class="form-label">Adam\'s call notes or email exchange</label>'+
-        '<textarea id="opp-notes" rows="8" placeholder="Paste your notes from the call you just listened to, or paste the email thread between Adam and the prospect. The more context, the better the brief — include anything the prospect said about their current situation, pain points, team structure, or goals..."></textarea>'+
-      '</div>'+
-      '<button class="btn" onclick="buildOpportunityBrief()">✦ Build my prep brief</button>'+
+      touchQueueHtml+
     '</div>'+
 
-    '<div id="opp-brief-output" style="margin-bottom:1.5rem"></div>'+
-    '<div id="plan-area">'+
-      (savedPlan?buildPlanHTML(savedPlan.text):'<button class="plan-btn" id="plan-btn" onclick="planMyDay()" style="font-size:15px">↻ Plan my day</button>')+
+    // ── WEEKLY SCORECARD ──
+    '<div class="card">'+
+      '<div style="font-size:16px;font-weight:500;margin-bottom:.85rem">This week</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">'+
+        '<div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">'+
+          '<div style="font-size:24px;font-weight:500;font-family:DM Mono,monospace;color:var(--accent2)">'+stats.all.length+'</div>'+
+          '<div style="font-size:13px;color:var(--muted);margin-top:2px">Touches logged</div>'+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">'+
+          '<div style="font-size:24px;font-weight:500;font-family:DM Mono,monospace;color:var(--accent2)">'+meetings+'</div>'+
+          '<div style="font-size:13px;color:var(--muted);margin-top:2px">Meetings booked</div>'+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">'+
+          '<div style="font-size:24px;font-weight:500;font-family:DM Mono,monospace;color:var(--amber)">'+stats.calls.length+'</div>'+
+          '<div style="font-size:13px;color:var(--muted);margin-top:2px">Calls</div>'+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:8px;padding:.75rem;text-align:center">'+
+          '<div style="font-size:24px;font-weight:500;font-family:DM Mono,monospace;color:var(--sky)">'+stats.emails.length+'</div>'+
+          '<div style="font-size:13px;color:var(--muted);margin-top:2px">Emails</div>'+
+        '</div>'+
+      '</div>'+
+      '<button class="btn-ghost btn-sm" onclick="logMeeting()" style="margin-top:.75rem;width:100%">+ Log a meeting booked</button>'+
     '</div>'+
-    '</div>'+ // end left column
 
-    // RIGHT SIDEBAR — saved briefs
-    '<div id="opp-saved-briefs" style="width:260px;flex-shrink:0"></div>'+
-    '</div>'; // end two-column flex
+    '</div>'+ // end 2-col grid
 
-  // Load today's next meeting
+    // ── ACCOUNTS NEEDING ATTENTION ──
+    '<div class="card" style="margin-bottom:1.25rem">'+
+      '<div style="font-size:16px;font-weight:500;margin-bottom:.85rem">Accounts needing attention <span style="font-size:13px;color:var(--muted);font-weight:400">· no touch in 7+ days</span></div>'+
+      staleHtml+
+    '</div>'+
+
+    // ── QUICK ACTIONS ──
+    '<div style="display:flex;gap:.75rem;flex-wrap:wrap">'+
+      '<button class="btn" onclick="loadTab(\'prospecting\')" style="font-size:15px">Go to Outbound →</button>'+
+      '<button class="btn-ghost" onclick="loadTab(\'tools\')" style="font-size:15px">✦ Opp Brief Builder</button>'+
+      '<button class="btn-ghost" onclick="loadTab(\'pipeline\')" style="font-size:15px">View Pipeline</button>'+
+    '</div>';
+
+  // Load next meeting from calendar
   if(isGC()){
     fetch('/api/calendar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:getRT(),mode:'today'})})
     .then(function(r){return r.json();}).then(function(events){
       if(!Array.isArray(events))return;
-      window._claudeCalToday=events;
       var meets=events.filter(function(e){return!e.isAllDay&&e.type==='meeting';});
       var now=getPST();var nowMins=now.getHours()*60+now.getMinutes();
       var next=null;
@@ -770,7 +848,6 @@ function loadOverview(){
         if(ap==='PM'&&hh!==12)hh+=12;if(ap==='AM'&&hh===12)hh=0;
         if(hh*60+mm>=nowMins){next=ev;break;}
       }
-      // Don't fall back to past meetings — if nothing upcoming, show nothing
       if(next){
         var ne=document.getElementById('ov-next-meeting');
         if(ne){
@@ -783,14 +860,76 @@ function loadOverview(){
               '<div style="font-size:15px;font-weight:500;color:var(--accent2)">'+esc(next.title)+'</div>'+
               '<div style="font-size:15px;color:var(--muted);margin-top:2px">'+esc(next.time)+(next.duration?' · '+esc(next.duration):'')+'</div>'+
               '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+jp+
-              '<button class="btn-ghost btn-sm" onclick="prepMeeting('+JSON.stringify({title:next.title,time:next.time,attendees:extAttendees}).replace(/"/g,"'")+')" style="font-size:15px">🗒 Prep me</button>'+
+              '<button class="btn-ghost btn-sm" onclick="loadTab(\'tools\');setTimeout(function(){prepMeeting('+JSON.stringify({title:next.title,time:next.time,attendees:extAttendees}).replace(/"/g,"'")+')" style="font-size:15px">🗒 Prep me</button>'+
               '</div>'+
             '</div></div>';
         }
       }
     }).catch(function(){});
   }
+}
+
+// ── AE TOOLS TAB ──────────────────────────────────────────────────────────
+function loadTools(){
+  var el=document.getElementById('panel-tools');
+  el.innerHTML=
+    '<div style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between">'+
+      '<div>'+
+        '<div style="font-size:22px;font-weight:500">AE Tools</div>'+
+        '<div style="font-size:15px;color:var(--muted);margin-top:3px">Resources to help you sell</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div style="display:flex;gap:10px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:.75rem">'+
+      '<button class="btn" id="tool-tab-brief" onclick="showTool(\'brief\')" style="font-size:14px">✦ Opp Brief Builder</button>'+
+      '<button class="btn-ghost" id="tool-tab-roi" onclick="showTool(\'roi\')" style="font-size:14px">ROI Calculator</button>'+
+    '</div>'+
+
+    '<div id="tool-brief">'+buildOppBriefHTML()+'</div>'+
+    '<div id="tool-roi" style="display:none">'+
+      '<iframe src="/roi-calculator.html" style="width:100%;height:calc(100vh - 220px);border:none;border-radius:10px;background:#fff"></iframe>'+
+    '</div>';
+
   renderSavedBriefsList();
+}
+
+function showTool(name){
+  document.getElementById('tool-brief').style.display=name==='brief'?'':'none';
+  document.getElementById('tool-roi').style.display=name==='roi'?'':'none';
+  document.getElementById('tool-tab-brief').className=name==='brief'?'btn':'btn-ghost';
+  document.getElementById('tool-tab-roi').className=name==='roi'?'btn':'btn-ghost';
+  if(name==='brief')renderSavedBriefsList();
+}
+
+function buildOppBriefHTML(){
+  return'<div style="display:flex;gap:1.5rem;align-items:flex-start">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div class="card" style="border:1px solid rgba(100,200,170,.2)">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.25rem">'+
+        '<span style="font-size:15px;color:var(--accent)">✦</span>'+
+        '<div style="font-size:16px;font-weight:500">Opportunity Brief Builder</div>'+
+      '</div>'+
+      '<div style="font-size:15px;color:var(--muted);margin-bottom:1.1rem;line-height:1.65">'+
+        'Paste notes from Adam\'s call or the email exchange. Claude builds your full prep: situation summary, discovery questions, demo focus, and draft intro email.'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
+        '<div class="form-row"><label class="form-label">Prospect name</label><input id="opp-name" type="text" placeholder="Sarah Johnson"></div>'+
+        '<div class="form-row"><label class="form-label">Company</label><input id="opp-company" type="text" placeholder="Acme Corp"></div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
+        '<div class="form-row"><label class="form-label">Meeting date</label><input id="opp-date" type="text" placeholder="e.g. May 5"></div>'+
+        '<div class="form-row"><label class="form-label">Website / LinkedIn (optional)</label><input id="opp-url" type="text" placeholder="acme.com"></div>'+
+      '</div>'+
+      '<div class="form-row" style="margin-bottom:12px">'+
+        '<label class="form-label">Call notes or email thread</label>'+
+        '<textarea id="opp-notes" rows="8" placeholder="Paste Adam\'s call notes or the email exchange here. The more context the better..."></textarea>'+
+      '</div>'+
+      '<button class="btn" onclick="buildOpportunityBrief()">✦ Build my prep brief</button>'+
+    '</div>'+
+    '<div id="opp-brief-output" style="margin-top:1.25rem"></div>'+
+    '</div>'+
+    '<div id="opp-saved-briefs" style="width:260px;flex-shrink:0"></div>'+
+  '</div>';
 }
 
 function buildOpportunityBrief(){
@@ -1005,7 +1144,7 @@ function loadSFForOverview(){
             '<div class="deal-amount">'+fmt$(d.amount)+'</div>'+
             '<div class="deal-meta" style="margin-top:6px">'+
               '<span class="badge badge-grey">'+esc(d.stage)+'</span>'+
-              (d.daysInStage?'<span style="font-size:14px;color:var(--muted)">'+d.daysInStage+'d in stage</span>':'')+
+              (d.daysInStage!=null?'<span style="font-size:14px;color:var(--muted)" title="'+(d.oppAge!=null?d.oppAge+'d since created':'')+'">'+d.daysInStage+'d in stage</span>':'')+
             '</div>'+
           '</div>';
         }).join('')+'</div>';
@@ -1184,7 +1323,7 @@ function renderKanbanCard(d){
       '<span style="font-family:DM Mono,monospace;font-size:16px;font-weight:500;color:var(--accent2)">'+fmt$(d.amount)+'</span>'+
       '<span style="font-size:13px;font-family:DM Mono,monospace;color:'+dateColor+'">'+dateLabel+'</span>'+
     '</div>'+
-    (d.daysInStage?'<div style="font-size:13px;color:var(--muted);margin-top:3px">'+d.daysInStage+'d in stage</div>':'')+
+    (d.daysInStage!=null?'<div style="font-size:13px;color:var(--muted);margin-top:3px" title="'+(d.oppAge!=null?d.oppAge+'d since opp created':'')+'">'+d.daysInStage+'d in stage</div>':'')+
     '<button onclick="dealInsight('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="width:100%;margin-top:8px;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif">✦ What should I do next?</button>'+
   '</div>';
 }
@@ -1212,7 +1351,7 @@ function renderPipelineList(deals){
             '<div class="deal-company" style="margin-top:2px">'+esc(d.account)+'</div>'+
             '<div class="deal-meta">'+
               '<span class="badge badge-grey">'+esc(d.stage)+'</span>'+
-              (d.daysInStage?'<span style="font-size:14px;color:var(--muted)">'+d.daysInStage+'d in stage</span>':'')+
+              (d.daysInStage!=null?'<span style="font-size:14px;color:var(--muted)" title="'+(d.oppAge!=null?d.oppAge+'d since opp created':'')+'">'+d.daysInStage+'d in stage</span>':'')+
               (d.nextStep?'<span style="font-size:14px;color:var(--text2)">Next: '+esc(d.nextStep.slice(0,60))+'</span>':'')+
             '</div>'+
           '</div>'+
@@ -1235,7 +1374,7 @@ function dealInsight(deal,evt){
     '<div id="insight-content"><div class="loading"><div class="spinner"></div><div>Claude is analysing...</div></div></div>'+
     '<div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Close</button></div>');
 
-  var prompt='Deal: '+deal.name+'\nAccount: '+deal.account+'\nStage: '+deal.stage+'\nAmount: '+fmt$(deal.amount)+'\nClose date: '+(deal.closeDate||'Not set')+'\nDays in stage: '+(deal.daysInStage||'Unknown')+'\nNext step: '+(deal.nextStep||'None logged')+'\n'+(deal.gongSummary?'Last Gong call: '+deal.gongSummary+'\n':'')+
+  var prompt='Deal: '+deal.name+'\nAccount: '+deal.account+'\nStage: '+deal.stage+'\nAmount: '+fmt$(deal.amount)+'\nClose date: '+(deal.closeDate||'Not set')+'\nDays in current stage: '+(deal.daysInStage!=null?deal.daysInStage:'Unknown')+'\nOpportunity age: '+(deal.oppAge!=null?deal.oppAge+'d':'Unknown')+'\nNext step: '+(deal.nextStep||'None logged')+'\n'+(deal.gongSummary?'Last Gong call: '+deal.gongSummary+'\n':'')+
     '\nWhat is the single most important thing I should do next to advance this deal? Be specific — name the action, the person to contact, and what to say or send. Include a suggested message if relevant.';
 
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -2035,7 +2174,7 @@ function renderObTable(){
   accounts.sort(function(a,b){return a.tier-b.tier||a.name.localeCompare(b.name);});
   if(!accounts.length){el.innerHTML='<div class="empty-dashed"><div class="empty-title">No accounts in this tier</div></div>';return;}
   el.innerHTML='<div class="ob-table">'+
-    '<div class="ob-hdr"><div></div><div>Account</div><div>Seq</div><div>Contacts</div><div>Status</div><div>Last Touch</div><div>Next Action</div><div></div></div>'+
+    '<div class="ob-hdr"><div></div><div>Account</div><div>Seq</div><div style="text-align:center">Cx</div><div>Status</div><div>Last Touch</div><div>Next Action</div><div></div></div>'+
     accounts.map(function(a){
       var lastT=a.lastTouched?timeSince(a.lastTouched):'Never';
       var nextSeq=getAccountNextAction(a);
