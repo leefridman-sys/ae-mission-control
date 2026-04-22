@@ -1035,12 +1035,6 @@
               </span>
               <div class="value" id="out_hrMgr">0</div>
             </div>
-            <div class="output">
-              <span class="label">Admin time savings
-                <span class="tip" id="tip-admin-hours" data-tip="L&D admin/ops FTEs × Annual FTE hours × % of admin time recovered. Scales with this company's admin footprint — edit in Advanced Assumptions below.">?</span>
-              </span>
-              <div class="value" id="out_hrAdmin">0</div>
-            </div>
             <div class="output total">
               <span class="label">Total hours saved</span>
               <div class="value" id="out_hrTotal">0</div>
@@ -1065,12 +1059,6 @@
                 <span class="tip" data-tip="Manager hours saved × loaded manager hourly rate. Loaded rate = salary × benefits multiplier ÷ annual FTE hours.">?</span>
               </span>
               <div class="value" id="out_costMgr">$0</div>
-            </div>
-            <div class="output">
-              <span class="label">Admin cost savings
-                <span class="tip" data-tip="Admin hours × loaded member hourly rate. Assumes admin work is absorbed by team members.">?</span>
-              </span>
-              <div class="value" id="out_costAdmin">$0</div>
             </div>
             <div class="output total">
               <span class="label">Total time-cost savings</span>
@@ -1176,10 +1164,6 @@
           <input type="number" id="benefitsMult" value="1.2" min="1" step="0.05" />
         </div>
         <div class="field">
-          <label for="adminRecoveryPct">% of admin time recovered with Cognota</label>
-          <input type="number" id="adminRecoveryPct" value="30" min="0" max="100" step="5" />
-        </div>
-        <div class="field">
           <label for="budgetRecoveredPct">Budget value recovered (% of budget)</label>
           <input type="number" id="budgetRecoveredPct" value="5" min="0" step="0.5" />
         </div>
@@ -1193,7 +1177,7 @@
         </div>
       </div>
       <div class="assumptions-note">
-        Note: Loaded hourly rate = Salary × Benefits multiplier ÷ Annual FTE hours. Example: $65,000 × 1.2 ÷ 2,080 = $37.50/hr. Admin cost savings = L&amp;D admin/ops FTEs × Annual FTE hours × % recovered × loaded member rate.
+        Note: Loaded hourly rate = Salary × Benefits multiplier ÷ Annual FTE hours. Example: $65,000 × 1.2 ÷ 2,080 = $37.50/hr.
       </div>
     </div>
   </details>
@@ -1283,13 +1267,10 @@ function recalc() {
   const workDays      = num('workDays');
   const annualHrs     = num('annualHours') || 2080;
   const benefitsMult  = num('benefitsMult') || 1;
-  const adminRecPct   = num('adminRecoveryPct') / 100;
   const budgetRecPct  = num('budgetRecoveredPct') / 100;
   const prodPct       = num('productivityPct') / 100;
   const fteHours      = num('fteHours') || 2080;
 
-  // ---- Admin hours saved is now DERIVED from customer inputs, not hard-coded ----
-  const adminHours = members * annualHrs * adminRecPct;
 
   // ---- Investment ----
   // Auto-populate licenses from members + managers unless user overrode
@@ -1315,8 +1296,7 @@ function recalc() {
   // ---- Hours saved ----
   const hrMem   = (members * memberMin * workDays) / 60;
   const hrMgr   = (managers * projects * managerMin * workDays) / 60;
-  const hrAdmin = adminHours;
-  const hrTotal = hrMem + hrMgr + hrAdmin;
+  const hrTotal = hrMem + hrMgr;
 
   // ---- Loaded hourly rates ----
   const memberRate  = (memberSal  * benefitsMult) / annualHrs;
@@ -1325,8 +1305,7 @@ function recalc() {
   // ---- Cost savings ----
   const costMem   = hrMem   * memberRate;
   const costMgr   = hrMgr   * managerRate;
-  const costAdmin = hrAdmin * memberRate;
-  const costTotal = costMem + costMgr + costAdmin;
+  const costTotal = costMem + costMgr;
 
   // ---- Productivity value ----
   const budgetRec = budget * budgetRecPct;
@@ -1363,12 +1342,10 @@ function recalc() {
 
   $('out_hrMem').textContent   = fmtNum(Math.round(hrMem));
   $('out_hrMgr').textContent   = fmtNum(Math.round(hrMgr));
-  $('out_hrAdmin').textContent = fmtNum(Math.round(hrAdmin));
   $('out_hrTotal').textContent = fmtNum(Math.round(hrTotal));
 
   $('out_costMem').textContent   = fmtUSD(costMem);
   $('out_costMgr').textContent   = fmtUSD(costMgr);
-  $('out_costAdmin').textContent = fmtUSD(costAdmin);
   $('out_costTotal').textContent = fmtUSD(costTotal);
 
   $('out_budgetRec').textContent = fmtUSD(budgetRec);
@@ -1391,7 +1368,7 @@ const watchedIds = [
   'disparateTools','costPerTool','memberMinSaved','projectsPerManager',
   'managerMinSaved','annualBudget',
   // assumptions
-  'workDays','annualHours','benefitsMult','adminRecoveryPct',
+  'workDays','annualHours','benefitsMult',
   'budgetRecoveredPct','productivityPct','fteHours'
 ];
 
@@ -1418,7 +1395,7 @@ function resetDefaults() {
     memberMinSaved: 10, projectsPerManager: 6, managerMinSaved: 30,
     annualBudget: 1000000, adminFTEs: 1,
     workDays: 250, annualHours: 2080, benefitsMult: 1.2,
-    adminRecoveryPct: 30, budgetRecoveredPct: 5, productivityPct: 2,
+    budgetRecoveredPct: 5, productivityPct: 2,
     fteHours: 2080
   };
   Object.entries(defaults).forEach(([k,v]) => { $(k).value = v; });
@@ -1430,8 +1407,6 @@ function resetDefaults() {
 
 function updateCompanyTips(){
   var name=($('customerName').value||'').trim()||'this company';
-  var tip=document.getElementById('tip-admin-hours');
-  if(tip) tip.setAttribute('data-tip','L&D admin/ops FTEs × Annual FTE hours × % of admin time recovered. Scales with '+name+'\'s admin footprint — edit in Advanced Assumptions below.');
 }
 $('customerName').addEventListener('input', updateCompanyTips);
 updateCompanyTips();
