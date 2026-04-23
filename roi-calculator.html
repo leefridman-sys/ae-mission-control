@@ -679,16 +679,143 @@
   }
 
   /* ---------- Print ---------- */
+  /* ── PRINT / PDF PROPOSAL ─────────────────────────────────── */
+  @page { margin: 0.65in 0.75in; size: letter; }
+
   @media print {
-    body { background: white; padding-right: 0 !important; }
-    .app { max-width: 100%; padding: 0; }
-    .topbar-actions, details.assumptions > summary::before { display: none !important; }
-    details.assumptions[open] > summary { display: none; }
-    .card { box-shadow: none; page-break-inside: avoid; }
-    .top-row { grid-template-columns: 1fr 1fr; }
-    .middle-row { grid-template-columns: 1fr 1fr; }
+    /* Hide entire interactive UI */
+    .app { display: none !important; }
     #pain-panel, #pain-toggle { display: none !important; }
-    #pain-print-section { display: block !important; }
+
+    /* Show proposal pages */
+    #pp1, #pp2, #pain-print-section {
+      display: block !important;
+    }
+    #pp2        { page-break-before: always; }
+    #pain-print-section { page-break-before: always; }
+  }
+
+  /* Print pages — hidden on screen */
+  #pp1, #pp2 { display: none; font-family: 'DM Sans', sans-serif; color: #1a1714; }
+
+  /* ── PAGE 1 styles ── */
+  .pp-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 16px; border-bottom: 2px solid #1b3f39; margin-bottom: 36px;
+  }
+  .pp-brand { display: flex; align-items: center; gap: 10px; }
+  .pp-brand-mark {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: #1b3f39; color: #b1d9d1;
+    font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pp-brand-name { font-size: 18px; font-weight: 600; color: #1b3f39; }
+  .pp-brand-sub { font-size: 11px; color: #9a9590; letter-spacing: .08em; text-transform: uppercase; }
+  .pp-prospect { text-align: right; }
+  .pp-prospect-name { font-size: 15px; font-weight: 600; color: #1a1714; }
+  .pp-prospect-date { font-size: 12px; color: #9a9590; margin-top: 2px; }
+
+  .pp-eyebrow {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #3d7a6e; margin-bottom: 6px;
+  }
+  .pp-title {
+    font-size: 28px; font-weight: 300; letter-spacing: -.5px;
+    color: #1a1714; margin-bottom: 4px; line-height: 1.2;
+  }
+  .pp-subtitle { font-size: 14px; color: #9a9590; margin-bottom: 40px; }
+
+  .pp-roi-hero {
+    text-align: center; padding: 36px 0 32px;
+    border-top: 1px solid #e2ddd7; border-bottom: 1px solid #e2ddd7;
+    margin-bottom: 32px;
+  }
+  .pp-roi-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #9a9590; margin-bottom: 8px; }
+  .pp-roi-number { font-size: 88px; font-weight: 300; letter-spacing: -4px; color: #1b3f39; line-height: 1; }
+  .pp-roi-sub { font-size: 13px; color: #9a9590; margin-top: 8px; }
+
+  .pp-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 36px;
+  }
+  .pp-stat {
+    padding: 18px 16px; border: 1px solid #e2ddd7; border-radius: 10px;
+    text-align: center; background: #f9f7f4;
+  }
+  .pp-stat-value { font-size: 26px; font-weight: 500; color: #1b3f39; line-height: 1.1; margin-bottom: 4px; }
+  .pp-stat-label { font-size: 11px; color: #9a9590; text-transform: uppercase; letter-spacing: .06em; }
+
+  .pp-investment-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; background: #1b3f39; border-radius: 10px; color: #b1d9d1;
+  }
+  .pp-inv-left { font-size: 13px; }
+  .pp-inv-amount { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .pp-inv-note { font-size: 11px; opacity: .7; }
+  .pp-inv-right { text-align: right; font-size: 12px; opacity: .8; line-height: 1.6; }
+
+  /* ── PAGE 2 styles ── */
+  .pp2-title {
+    font-size: 22px; font-weight: 500; color: #1a1714;
+    margin-bottom: 4px;
+  }
+  .pp2-sub { font-size: 13px; color: #9a9590; margin-bottom: 28px; }
+
+  .pp2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .pp2-card {
+    padding: 16px 18px; border: 1px solid #e2ddd7; border-radius: 10px; background: #f9f7f4;
+  }
+  .pp2-card-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #9a9590; margin-bottom: 12px;
+  }
+  .pp2-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 5px 0; border-bottom: 1px solid #e2ddd7; font-size: 13px;
+  }
+  .pp2-row:last-child { border-bottom: none; }
+  .pp2-row-label { color: #5a5550; }
+  .pp2-row-value { font-weight: 600; color: #1a1714; }
+
+  .pp2-breakdown { margin-bottom: 24px; }
+  .pp2-breakdown-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #9a9590; margin-bottom: 10px;
+  }
+  .pp2-brow {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; font-size: 13px;
+    border-bottom: 1px solid #e2ddd7;
+  }
+  .pp2-brow:first-of-type { border-top: 1px solid #e2ddd7; }
+  .pp2-brow.total-row {
+    background: #1b3f39; color: #fff; border: none;
+    border-radius: 6px; margin-top: 4px; font-weight: 600; font-size: 14px;
+  }
+  .pp2-brow-label { color: #5a5550; }
+  .pp2-brow.total-row .pp2-brow-label { color: #b1d9d1; }
+  .pp2-brow-val { font-weight: 600; color: #1a1714; }
+  .pp2-brow.total-row .pp2-brow-val { color: #fff; font-size: 16px; }
+
+  .pp2-assumptions {
+    padding: 14px 18px; border: 1px solid #e2ddd7; border-radius: 10px;
+    background: #f9f7f4;
+  }
+  .pp2-assumptions-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #9a9590; margin-bottom: 10px;
+  }
+  .pp2-assumptions-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; font-size: 12px;
+  }
+  .pp2-ass-item { display: flex; justify-content: space-between; color: #5a5550; padding: 3px 0; border-bottom: 1px solid #e2ddd7; }
+  .pp2-ass-item:last-child { border: none; }
+  .pp2-ass-val { font-weight: 600; color: #1a1714; }
+
+  .pp-disclaimer {
+    font-size: 10px; color: #9a9590; line-height: 1.5;
+    margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2ddd7;
   }
 
   #pain-print-section {
@@ -1188,7 +1315,107 @@
     <strong>Disclaimer:</strong> The ROI and financial figures shown in this tool are estimates only. They are based on data from Cognota customers, industry research, and expert input. Your actual ROI may differ. Cognota is not responsible for the accuracy or outcomes of these estimates.
   </div>
 
-  <!-- Pain points section — hidden on screen, shown on print -->
+  <!-- ============ PRINT PAGE 1 — ROI Summary ============ -->
+  <div id="pp1">
+    <div class="pp-header">
+      <div class="pp-brand">
+        <div class="pp-brand-mark">C</div>
+        <div>
+          <div class="pp-brand-name">Cognota</div>
+          <div class="pp-brand-sub">LearnOps Platform</div>
+        </div>
+      </div>
+      <div class="pp-prospect">
+        <div class="pp-prospect-name" id="pp1-prospect"></div>
+        <div class="pp-prospect-date" id="pp1-date"></div>
+      </div>
+    </div>
+
+    <div class="pp-eyebrow">ROI Analysis</div>
+    <div class="pp-title">The LearnOps Investment Case</div>
+    <div class="pp-subtitle" id="pp1-subtitle">Projected first-year return on Cognota</div>
+
+    <div class="pp-roi-hero">
+      <div class="pp-roi-label">One-Year Return on Investment</div>
+      <div class="pp-roi-number" id="pp1-roi"></div>
+      <div class="pp-roi-sub">Projected return in the first 12 months with Cognota</div>
+    </div>
+
+    <div class="pp-stats">
+      <div class="pp-stat">
+        <div class="pp-stat-value" id="pp1-value"></div>
+        <div class="pp-stat-label">Annual Value Created</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-value" id="pp1-payback"></div>
+        <div class="pp-stat-label">Months to Payback</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-value" id="pp1-fte"></div>
+        <div class="pp-stat-label">Added FTE Capacity</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-value" id="pp1-wait"></div>
+        <div class="pp-stat-label">Monthly Cost of Waiting</div>
+      </div>
+    </div>
+
+    <div class="pp-investment-bar">
+      <div class="pp-inv-left">
+        <div class="pp-inv-amount" id="pp1-investment"></div>
+        <div>Annual investment</div>
+        <div class="pp-inv-note">Includes onboarding, ongoing customer success &amp; support, and SSO</div>
+      </div>
+      <div class="pp-inv-right" id="pp1-term-note"></div>
+    </div>
+  </div>
+
+  <!-- ============ PRINT PAGE 2 — Assumptions & Breakdown ============ -->
+  <div id="pp2">
+    <div class="pp-header">
+      <div class="pp-brand">
+        <div class="pp-brand-mark">C</div>
+        <div>
+          <div class="pp-brand-name">Cognota</div>
+          <div class="pp-brand-sub">LearnOps Platform</div>
+        </div>
+      </div>
+      <div class="pp-prospect">
+        <div class="pp-prospect-name" id="pp2-prospect"></div>
+        <div class="pp-prospect-date" id="pp2-date"></div>
+      </div>
+    </div>
+
+    <div class="pp2-title">How We Got There</div>
+    <div class="pp2-sub">Detailed assumptions &amp; calculation breakdown</div>
+
+    <div class="pp2-cols">
+      <div class="pp2-card">
+        <div class="pp2-card-title">Your Team &amp; Tools</div>
+        <div id="pp2-inputs"></div>
+      </div>
+      <div class="pp2-card">
+        <div class="pp2-card-title">Investment Breakdown</div>
+        <div id="pp2-investment"></div>
+      </div>
+    </div>
+
+    <div class="pp2-breakdown">
+      <div class="pp2-breakdown-title">Value Breakdown — Annual</div>
+      <div id="pp2-value-rows"></div>
+    </div>
+
+    <div class="pp2-assumptions">
+      <div class="pp2-assumptions-title">Calculation Assumptions</div>
+      <div class="pp2-assumptions-grid" id="pp2-assumptions-grid"></div>
+    </div>
+
+    <div class="pp-disclaimer">
+      <strong>Disclaimer:</strong> The ROI and financial figures shown are estimates only, based on data from Cognota customers, industry research, and expert input. Your actual ROI may differ. Cognota is not responsible for the accuracy or outcomes of these estimates.
+    </div>
+  </div>
+
+  <!-- ============ PRINT PAGE 3 — Investment Justification ============ -->
   <div id="pain-print-section"></div>
 
 
@@ -1619,16 +1846,115 @@ function escHtml(str) {
   } catch(e) {}
 })();
 
-// Populate pain points print section before PDF export
+// Populate all three print pages before PDF export
 window.addEventListener('beforeprint', function(){
+  var prospect = (document.getElementById('customerName').value || '').trim() ||
+                 (document.getElementById('pain-prospect').value || '').trim() || '';
+  var dateStr  = (document.getElementById('quoteDate').value || '').trim();
+  var termEl   = document.querySelector('input[name="contractTerm"]:checked');
+  var is3yr    = !termEl || termEl.value === '3';
+
+  // Helper to read a rendered output element's text
+  function val(id){ var el=document.getElementById(id); return el ? el.textContent.trim() : ''; }
+  function numVal(id){ return parseFloat((document.getElementById(id)||{}).value)||0; }
+
+  // ── PAGE 1 ──────────────────────────────────────────────────
+  var pp1 = document.getElementById('pp1');
+  if(pp1){
+    document.getElementById('pp1-prospect').textContent = prospect ? 'Prepared for ' + prospect : '';
+    document.getElementById('pp1-date').textContent = dateStr;
+    if(prospect) document.getElementById('pp1-subtitle').textContent =
+      'First-year return on Cognota for ' + prospect;
+    document.getElementById('pp1-roi').textContent       = val('out_roi');
+    document.getElementById('pp1-value').textContent     = val('out_valueTotal');
+    document.getElementById('pp1-payback').textContent   = val('out_payback');
+    document.getElementById('pp1-fte').textContent       = val('out_fte');
+    document.getElementById('pp1-wait').textContent      = val('out_wait') + '/mo';
+    document.getElementById('pp1-investment').textContent = val('out_investment') + '/yr';
+    document.getElementById('pp1-term-note').innerHTML  =
+      (is3yr
+        ? '3-Year term<br>Standard pricing'
+        : '1-Year term<br>+30% flexibility premium vs<br>standard 3-year pricing');
+  }
+
+  // ── PAGE 2 ──────────────────────────────────────────────────
+  var pp2 = document.getElementById('pp2');
+  if(pp2){
+    document.getElementById('pp2-prospect').textContent = prospect ? 'Prepared for ' + prospect : '';
+    document.getElementById('pp2-date').textContent = dateStr;
+
+    // Inputs card
+    var members  = numVal('teamMembers');
+    var managers = numVal('teamManagers');
+    var memSal   = numVal('memberSalary');
+    var mgrSal   = numVal('managerSalary');
+    var tools    = numVal('disparateTools');
+    var memMin   = numVal('memberMinSaved');
+    var mgrMin   = numVal('managerMinSaved');
+    var licenses = numVal('totalLicenses');
+
+    function row(label, value){
+      return '<div class="pp2-row"><span class="pp2-row-label">'+label+'</span><span class="pp2-row-value">'+value+'</span></div>';
+    }
+    document.getElementById('pp2-inputs').innerHTML =
+      row('Team members', members) +
+      row('Team managers', managers) +
+      row('Avg member salary', '$' + memSal.toLocaleString('en-US')) +
+      row('Avg manager salary', '$' + mgrSal.toLocaleString('en-US')) +
+      (tools ? row('Tools eliminated', tools) : '') +
+      row('Member time saved / day', memMin + ' min') +
+      row('Manager time saved / project / day', mgrMin + ' min') +
+      row('Total Cognota licenses', licenses);
+
+    // Investment card
+    var addLic = Math.max(0, licenses - 10);
+    document.getElementById('pp2-investment').innerHTML =
+      row('Platform fee', val('out_platformFee')) +
+      row('Additional licenses', val('out_addLicenses')) +
+      (addLic > 0 ? row('Additional license fee', val('out_addLicCost')) : '') +
+      row('Contract term', is3yr ? '3-Year (standard)' : '1-Year (+30%)') +
+      row('Annual subscription', val('out_annualSub')) +
+      '<div class="pp2-row" style="border-top:2px solid #e2ddd7;margin-top:4px;padding-top:8px">'+
+        '<span class="pp2-row-label" style="font-weight:700">Total investment</span>'+
+        '<span class="pp2-row-value" style="font-size:16px;color:#1b3f39">'+val('out_investment')+'/yr</span>'+
+      '</div>';
+
+    // Value breakdown
+    function brow(label, value, isTotal){
+      return '<div class="pp2-brow'+(isTotal?' total-row':'')+'">'+
+        '<span class="pp2-brow-label">'+label+'</span>'+
+        '<span class="pp2-brow-val">'+value+'</span></div>';
+    }
+    document.getElementById('pp2-value-rows').innerHTML =
+      brow('Tool cost savings', val('out_toolTotal')) +
+      brow('Team member time savings', val('out_hrMem') + ' hrs  /  ' + val('out_costMem')) +
+      brow('Manager time savings', val('out_hrMgr') + ' hrs  /  ' + val('out_costMgr')) +
+      brow('Total time-cost savings', val('out_hrTotal') + ' hrs  /  ' + val('out_costTotal')) +
+      brow('Productivity & budget value', val('out_prodTotal')) +
+      brow('Total annual value created', val('out_valueTotal'), true);
+
+    // Assumptions
+    function assItem(label, value){
+      return '<div class="pp2-ass-item"><span>'+label+'</span><span class="pp2-ass-val">'+value+'</span></div>';
+    }
+    document.getElementById('pp2-assumptions-grid').innerHTML =
+      assItem('Working days/yr', numVal('workDays')) +
+      assItem('FTE hours/yr', numVal('annualHours')) +
+      assItem('Benefits multiplier', numVal('benefitsMult') + 'x') +
+      assItem('Budget recovered', numVal('budgetRecoveredPct') + '%') +
+      assItem('Productivity uplift', numVal('productivityPct') + '%') +
+      assItem('Licenses (base incl.)', '10');
+  }
+
+  // ── PAGE 3 — Pain points ────────────────────────────────────
   var section = document.getElementById('pain-print-section');
   if (!section) return;
-  var prospect = (document.getElementById('pain-prospect').value || '').trim();
+  var painProspect = (document.getElementById('pain-prospect').value || '').trim();
   var text = document.getElementById('pain-textarea').value || '';
   var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
   if (!lines.length) { section.innerHTML = ''; return; }
   var html = '<h2>Investment Justification</h2>';
-  if (prospect) html += '<div class="pain-print-prospect">' + prospect + '</div>';
+  if (painProspect) html += '<div class="pain-print-prospect">' + painProspect + '</div>';
   html += lines.map(function(line, i){
     var formatted = line.replace(/^(.+?)\s*[—–-]{1,2}\s*/, '<strong>$1</strong> — ');
     return '<div class="pain-print-item"><span class="pain-print-num">' + (i + 1) + '</span><div>' + formatted + '</div></div>';
