@@ -32,7 +32,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--green);display:flex;align
 .gpill.off{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.35);}
 .gdot{width:6px;height:6px;border-radius:50%;background:#55ac9b;flex-shrink:0;}
 .gpill.off .gdot{background:rgba(255,255,255,.3);}
-main{flex:1;padding:2rem 1.5rem 4rem;max-width:1320px;margin:0 auto;}
+main{flex:1;padding:2rem 1.5rem 4rem;max-width:1600px;margin:0 auto;width:100%;}
 .panel{display:none;}.panel.active{display:block;animation:fadeUp .18s ease;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.4rem;}
@@ -106,7 +106,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 .deal-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;}
 /* Kanban */
 .kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;}
-.kanban-col{background:#f9f7f4;border:1px solid var(--border);border-radius:12px;min-width:240px;max-width:260px;flex-shrink:0;}
+.kanban-col{background:#f9f7f4;border:1px solid var(--border);border-radius:12px;min-width:260px;max-width:320px;flex:1;}
 .kanban-col-hdr{padding:.75rem 1rem .6rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:500;color:var(--text2);display:flex;align-items:center;justify-content:space-between;}
 .kanban-col-count{font-family:'DM Mono',monospace;font-size:13px;background:rgba(0,0,0,.06);padding:1px 6px;border-radius:10px;color:var(--muted);}
 .kanban-cards{padding:.5rem;display:flex;flex-direction:column;gap:7px;min-height:60px;}
@@ -1776,10 +1776,10 @@ function renderKanbanCard(d){
       '<span style="font-size:13px;color:var(--muted)">'+(d.oppAge!=null?d.oppAge+'d old':'')+'</span>'+
     '</div>'+
     '<div style="display:flex;gap:5px;margin-top:8px">'+
-      '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="flex:1;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:13px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;">'+
+      '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="flex:1;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:6px 4px;font-size:13px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;">'+
         '<span>💬</span><span>'+(hasLink?'Chat':'Link chat')+'</span>'+
       '</button>'+
-      '<button onclick="openSprintAnalysis(\''+esc(d.id)+'\')" style="background:'+(getSprintMeta(d.id).analysis?'#7c2d12':'#fff5f0')+';border:1px solid '+(getSprintMeta(d.id).analysis?'#7c2d12':'#fca5a5')+';border-radius:6px;padding:5px 10px;font-size:13px;color:'+(getSprintMeta(d.id).analysis?'#fff':'#b91c1c')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px;" title="Sprint Selling Analysis">'+
+      '<button onclick="openSprintAnalysis(\''+esc(d.id)+'\')" style="flex:1;background:'+(getSprintMeta(d.id).analysis?'#7c2d12':'#fff5f0')+';border:1px solid '+(getSprintMeta(d.id).analysis?'#7c2d12':'#fca5a5')+';border-radius:6px;padding:6px 4px;font-size:13px;color:'+(getSprintMeta(d.id).analysis?'#fff':'#b91c1c')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;">'+
         '<span>⚡</span><span>Sprint</span>'+
       '</button>'+
     '</div>'+
