@@ -1972,8 +1972,12 @@ function sprintRenderTable(block){
 
 function sprintRenderBody(raw){
   var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Tables
-  t=t.replace(/((?:\|[^\n]+\|\n)+)/g,sprintRenderTable);
+  // Tables — ensure trailing newline so last row is captured
+  t=t.replace(/((?:\|[^\n]+\|[\n]?)+)/g,function(block){
+    // Only treat as table if it has at least 2 rows
+    if((block.match(/\n/g)||[]).length<1&&!/\n/.test(block))return block;
+    return sprintRenderTable(block+'\n');
+  });
   // Deal health banner
   t=t.replace(/Overall Deal Health[:\s]+([A-Z]+)([^\n<]*)/gi,function(m,status,rest){
     var uc=status.toUpperCase();
