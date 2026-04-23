@@ -1951,11 +1951,12 @@ function sprintRenderTable(block){
   var rows=block.trim().split('\n');
   var dataRows=rows.filter(function(r){return!/^\|[\s|:-]+\|$/.test(r.trim());});
   if(dataRows.length<2)return block;
-  var html='<div style="overflow-x:auto;margin:10px 0"><table style="width:100%;border-collapse:collapse;font-size:14px">';
+  var html='<div style="overflow-x:auto;margin:6px 0 4px"><table style="width:100%;border-collapse:collapse;font-size:14px">';
   dataRows.forEach(function(row,ri){
     var cells=row.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
     var isHead=ri===0;
-    var rowBg=isHead?'background:var(--accent2);color:#fff;font-weight:600':'background:'+(ri%2===0?'var(--bg)':'var(--card)');
+    // Use hardcoded colours (works in both dashboard and browser page)
+    var rowStyle=isHead?'background:#2d5e54;color:#fff;font-weight:600;':(ri%2===0?'background:#f9f7f4;':'background:#fff;');
     html+='<tr>';
     cells.forEach(function(cell){
       var content=cell;
@@ -1967,15 +1968,17 @@ function sprintRenderTable(block){
         content=sprintColorCell(content);
       }
       var tag=isHead?'th':'td';
-      html+='<'+tag+' style="padding:8px 12px;border:1px solid var(--border);'+rowBg+';vertical-align:top;text-align:left">'+content+'</'+tag+'>';
+      html+='<'+tag+' style="padding:8px 12px;border:1px solid #e2ddd7;'+rowStyle+'vertical-align:top;text-align:left">'+content+'</'+tag+'>';
     });
     html+='</tr>';
   });
-  return html+'</tbody></table></div>';
+  return html+'</table></div>';
 }
 
 function sprintRenderBody(raw){
-  var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Collapse 3+ consecutive newlines to max 2 before any processing
+  var t=raw.replace(/\n{3,}/g,'\n\n');
+  t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // Tables — ensure trailing newline so last row is captured
   t=t.replace(/((?:\|[^\n]+\|[\n]?)+)/g,function(block){
     // Only treat as table if it has at least 2 rows
