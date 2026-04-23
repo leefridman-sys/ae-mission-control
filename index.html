@@ -1735,8 +1735,11 @@ function renderPipeline(deals){
 }
 
 var _lastDeals=[];
+var _dealsById={};
 function renderKanban(deals){
   _lastDeals=deals;
+  _dealsById={};
+  deals.forEach(function(d){if(d.id)_dealsById[d.id]=d;});
   var body=document.getElementById('pl-body');if(!body)return;
   var cols={};
   SF_STAGES.forEach(function(s){cols[s]=[];});
@@ -1773,7 +1776,7 @@ function renderKanbanCard(d){
       '<span style="font-size:13px;color:var(--muted)">'+(d.oppAge!=null?d.oppAge+'d old':'')+'</span>'+
     '</div>'+
     '<div style="margin-top:8px">'+
-      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="width:100%;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">'+
+      '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="width:100%;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">'+
         '<span>💬</span><span>'+(hasLink?'Open strategy chat':'Link strategy chat')+'</span>'+
       '</button>'+
     '</div>'+
@@ -1804,7 +1807,7 @@ function renderPipelineList(deals){
           '<div style="text-align:right;flex-shrink:0">'+
             '<div class="deal-amount">'+fmt$(d.amount)+'</div>'+
             (d.oppAge!=null?'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+d.oppAge+'d old</div>':'')+
-            '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="margin-top:8px;background:'+(getDealMeta(d.id).claudeUrl?'var(--accent)':'#edf7f5')+';border:1px solid '+(getDealMeta(d.id).claudeUrl?'var(--accent)':'var(--light)')+';border-radius:6px;padding:4px 10px;font-size:14px;color:'+(getDealMeta(d.id).claudeUrl?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">💬 '+(getDealMeta(d.id).claudeUrl?'Open strategy chat':'Link strategy chat')+'</button>'+
+            '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="margin-top:8px;background:'+(getDealMeta(d.id).claudeUrl?'var(--accent)':'#edf7f5')+';border:1px solid '+(getDealMeta(d.id).claudeUrl?'var(--accent)':'var(--light)')+';border-radius:6px;padding:4px 10px;font-size:14px;color:'+(getDealMeta(d.id).claudeUrl?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">💬 '+(getDealMeta(d.id).claudeUrl?'Open strategy chat':'Link strategy chat')+'</button>'+
           '</div>'+
         '</div>'+
         (d.gongSummary?'<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);font-size:14px;color:var(--muted)">🎙 Gong: '+esc(d.gongSummary)+'</div>':'')+
@@ -1817,6 +1820,12 @@ function getDealMeta(oppId){
 }
 function saveDealMeta(oppId,meta){
   try{localStorage.setItem('pipeline_meta_'+oppId,JSON.stringify(meta));}catch(e){}
+}
+
+function openDealStrategyById(oppId,evt){
+  var d=_dealsById[oppId];
+  if(!d){showToast('Deal not found — refresh pipeline');return;}
+  openDealStrategy(d,evt);
 }
 
 function openDealStrategy(d,evt){
