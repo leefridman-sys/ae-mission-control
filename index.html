@@ -1933,100 +1933,119 @@ function saveSprintMeta(oppId,meta){
 }
 
 // ── Sprint body renderer ──────────────────────────────────────────────────────
-function sprintRenderBody(raw){
-  // 1. Escape HTML special chars
-  var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function sprintColorCell(content){
+  content=content.replace(/\b(AMBER)\b/g,'<span style="background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+  content=content.replace(/\b(GREEN)\b/g,'<span style="background:#d1fae5;color:#065f46;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+  content=content.replace(/\b(RED)\b/g,'<span style="background:#fee2e2;color:#991b1b;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+  content=content.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:1px 5px;border-radius:3px;border:1px solid #fcd34d;margin:0 2px">'+m+'</span>';});
+  return content;
+}
 
-  // 2. Render markdown tables
-  t=t.replace(/((?:\|[^\n]+\|\n)+)/g,function(block){
-    var rows=block.trim().split('\n');
-    // Filter out separator rows (---|---|---)
-    var dataRows=rows.filter(function(r){return!/^\|[\s|:-]+\|$/.test(r.trim());});
-    if(dataRows.length<2)return block;
-    var html='<div style="overflow-x:auto;margin:10px 0"><table style="width:100%;border-collapse:collapse;font-size:14px">';
-    dataRows.forEach(function(row,ri){
-      var cells=row.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
-      var tag=ri===0?'th':'td';
-      var rowBg=ri===0?'background:var(--accent2);color:#fff;font-weight:600':'background:'+(ri%2===0?'var(--bg)':'var(--card)');
-      html+='<tr>';
-      cells.forEach(function(cell,ci){
-        // Color-code X/6 scores
-        var content=cell;
-        if(ri>0&&/^\d+\/\d+$/.test(cell)){
-          var s=cell.split('/');var pct=parseInt(s[0])/parseInt(s[1]);
-          var sc=pct>=0.67?{bg:'#d1fae5',fg:'#065f46'}:pct>=0.34?{bg:'#fef3c7',fg:'#92400e'}:{bg:'#fee2e2',fg:'#991b1b'};
-          content='<span style="font-weight:700;color:'+sc.fg+';background:'+sc.bg+';padding:2px 8px;border-radius:10px">'+cell+'</span>';
-        }
-        // Color-code AMBER/GREEN/RED in cells
-        content=content.replace(/\b(AMBER)\b/g,'<span style="background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
-        content=content.replace(/\b(GREEN)\b/g,'<span style="background:#d1fae5;color:#065f46;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
-        content=content.replace(/\b(RED)\b/g,'<span style="background:#fee2e2;color:#991b1b;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
-        html+='<'+tag+' style="padding:8px 12px;border:1px solid var(--border);'+rowBg+';vertical-align:top">'+content+'</'+tag+'>';
-      });
-      html+='</tr>';
+function sprintRenderTable(block){
+  var rows=block.trim().split('\n');
+  var dataRows=rows.filter(function(r){return!/^\|[\s|:-]+\|$/.test(r.trim());});
+  if(dataRows.length<2)return block;
+  var html='<div style="overflow-x:auto;margin:10px 0"><table style="width:100%;border-collapse:collapse;font-size:14px">';
+  dataRows.forEach(function(row,ri){
+    var cells=row.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
+    var isHead=ri===0;
+    var rowBg=isHead?'background:var(--accent2);color:#fff;font-weight:600':'background:'+(ri%2===0?'var(--bg)':'var(--card)');
+    html+='<tr>';
+    cells.forEach(function(cell){
+      var content=cell;
+      if(!isHead&&/^\d+\/\d+$/.test(cell)){
+        var s=cell.split('/');var pct=parseInt(s[0])/parseInt(s[1]);
+        var sc=pct>=0.67?{bg:'#d1fae5',fg:'#065f46'}:pct>=0.34?{bg:'#fef3c7',fg:'#92400e'}:{bg:'#fee2e2',fg:'#991b1b'};
+        content='<span style="font-weight:700;color:'+sc.fg+';background:'+sc.bg+';padding:2px 8px;border-radius:10px">'+cell+'</span>';
+      } else if(!isHead){
+        content=sprintColorCell(content);
+      }
+      var tag=isHead?'th':'td';
+      html+='<'+tag+' style="padding:8px 12px;border:1px solid var(--border);'+rowBg+';vertical-align:top;text-align:left">'+content+'</'+tag+'>';
     });
-    html+='</table></div>';
-    return html;
+    html+='</tr>';
   });
+  return html+'</tbody></table></div>';
+}
 
-  // 3. Overall Deal Health line → big colored badge
+function sprintRenderBody(raw){
+  var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Tables
+  t=t.replace(/((?:\|[^\n]+\|\n)+)/g,sprintRenderTable);
+  // Deal health banner
   t=t.replace(/Overall Deal Health[:\s]+([A-Z]+)([^\n<]*)/gi,function(m,status,rest){
     var uc=status.toUpperCase();
     var sc=uc==='GREEN'?{bg:'#d1fae5',fg:'#065f46'}:uc==='RED'?{bg:'#fee2e2',fg:'#991b1b'}:{bg:'#fef3c7',fg:'#92400e'};
-    return '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;border:2px solid '+sc.fg+'20;background:'+sc.bg+';margin:8px 0">'+
-      '<span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+sc.fg+'">Overall Deal Health</span>'+
-      '<span style="font-size:16px;font-weight:700;color:'+sc.fg+';padding:3px 12px;background:'+sc.fg+'22;border-radius:6px">'+status+(rest?rest.trim():'')+'</span>'+
-      '</div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;border:2px solid '+sc.fg+'30;background:'+sc.bg+';margin:8px 0"><span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+sc.fg+'">Overall Deal Health</span><span style="font-size:16px;font-weight:700;color:'+sc.fg+';padding:3px 14px;background:'+sc.fg+'25;border-radius:6px">'+status+(rest?' — '+rest.trim():'')+'</span></div>';
   });
-
-  // 4. UNCONFIRMED — catch [UNCONFIRMED] and [UNCONFIRMED — any text]
-  t=t.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){
-    return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fcd34d;white-space:nowrap;margin:0 2px">'+m+'</span>';
-  });
-
-  // 5. ### sub-headings (not section headings)
+  // CONFIRMED/UPDATED badges
+  t=t.replace(/\[CONFIRMED\]/g,'<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #6ee7b7;margin:0 2px">[CONFIRMED ✓]</span>');
+  t=t.replace(/\[UPDATED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #93c5fd;margin:0 2px">'+m+'</span>';});
+  // UNCONFIRMED
+  t=t.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fcd34d;white-space:nowrap;margin:0 2px">'+m+'</span>';});
+  // # Title (preamble headings)
+  t=t.replace(/^# ([^#\n].+)$/gm,'<div style="font-size:19px;font-weight:700;color:var(--text);margin:.25rem 0 .15rem;line-height:1.3">$1</div>');
+  // ## Sub-title (preamble)
+  t=t.replace(/^## ([^#\n].+)$/gm,'<div style="font-size:14px;color:var(--muted);margin-bottom:.5rem">$1</div>');
+  // ### sub-headings
   t=t.replace(/^###\s+(.+)$/gm,'<div style="font-size:14px;font-weight:700;color:var(--accent2);margin:.8rem 0 .3rem;padding-bottom:.2rem;border-bottom:1px solid var(--light)">$1</div>');
-
-  // 6. Bold — do BEFORE italic, use non-greedy across non-newlines only
-  t=t.replace(/\*\*([^*\n]+)\*\*/g,'<strong style="font-weight:700;color:var(--text)">$1</strong>');
-
-  // 7. Italic
-  t=t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
-
-  // 8. Horizontal rules
+  // Bold — scoped to single line, no cross-line bleed
+  t=t.replace(/\*\*([^*\n]{1,120})\*\*/g,'<strong style="font-weight:700">$1</strong>');
+  // Italic
+  t=t.replace(/\*([^*\n]{1,80})\*/g,'<em>$1</em>');
+  // HR
   t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:.75rem 0">');
-
-  // 9. Bullets
-  t=t.replace(/^[-•]\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:5px;align-items:flex-start"><span style="color:var(--accent);flex-shrink:0;font-weight:700;margin-top:1px">›</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$1</span></div>');
-
-  // 10. Paragraphs
+  // Bullets
+  t=t.replace(/^[-•]\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:6px;align-items:flex-start"><span style="color:var(--accent);flex-shrink:0;font-weight:700;margin-top:2px;font-size:15px">›</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$1</span></div>');
+  // Numbered list items
+  t=t.replace(/^(\d+)\.\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:6px;align-items:flex-start"><span style="color:var(--accent2);flex-shrink:0;font-weight:700;font-size:14px;min-width:18px">$1.</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$2</span></div>');
+  // Paragraphs
   t=t.replace(/\n\n/g,'</p><p style="margin:6px 0;font-size:15px;line-height:1.7;color:var(--text)">');
   t=t.replace(/\n/g,'<br>');
-
   return '<p style="margin:0;font-size:15px;line-height:1.7;color:var(--text)">'+t+'</p>';
 }
 
+// Extract the SPRINT vitals summary table from section 2 for the sticky header
+function extractSprintScorecard(rawText){
+  var sec2match=rawText.match(/## 2\.[^\n]*\n([\s\S]*?)(?=\n## \d+\.|$)/);
+  if(!sec2match)return'';
+  var sec2=sec2match[1];
+  // Find the table block (the summary scorecard, not detail tables)
+  var tableMatch=sec2.match(/((?:\|[^\n]+\|\n){3,})/);
+  if(!tableMatch)return'';
+  return sprintRenderTable(tableMatch[1]);
+}
+
+// Extract overall deal health status for badge
+function extractDealHealth(rawText){
+  var m=rawText.match(/Overall Deal Health[:\s]+([A-Z]+)/i);
+  if(!m)return null;
+  var uc=m[1].toUpperCase();
+  return uc==='GREEN'?{label:'GREEN',bg:'#d1fae5',fg:'#065f46'}:uc==='RED'?{label:'RED',bg:'#fee2e2',fg:'#991b1b'}:{label:'AMBER',bg:'#fef3c7',fg:'#92400e'};
+}
+
 function buildSprintAccordion(oppId,rawText){
-  // Split on ## N. numbered section headings
   var parts=rawText.split(/(?=^## \d+\.)/m);
   var html='';
-  parts.forEach(function(part,idx){
+  parts.forEach(function(part){
     part=part.trim();if(!part)return;
     var m=part.match(/^## (\d+)\.\s*(.+)/);
     if(!m){
-      // preamble before section 1
-      html+='<div style="margin-bottom:.75rem">'+sprintRenderBody(part)+'</div>';
+      // preamble — skip title lines since we show them in the modal header
+      var bodyOnly=part.replace(/^#{1,3}[^\n]*\n?/gm,'').trim();
+      if(bodyOnly)html+='<div style="margin-bottom:.75rem">'+sprintRenderBody(bodyOnly)+'</div>';
       return;
     }
     var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
     var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
+    // Section 2 (Vitals Scorecard) is shown in sticky header — skip in accordion
+    if(num==='2')return;
     var secId='spasc-'+oppId+'-'+num;
-    // Default: first section open
     var open=num==='1';
     html+=
       '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px">'+
         '<div onclick="toggleSprintSection(\''+secId+'\')" style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:var(--bg);cursor:pointer;user-select:none">'+
-          '<span id="'+secId+'-ch" style="font-size:11px;color:var(--muted);transition:transform .15s">'+(open?'▼':'▶')+'</span>'+
+          '<span id="'+secId+'-ch" style="font-size:11px;color:var(--muted)">'+(open?'▼':'▶')+'</span>'+
           '<div style="flex:1;font-size:15px;font-weight:600;color:var(--text)"><span style="color:var(--accent);margin-right:5px">'+num+'.</span>'+esc(title)+'</div>'+
         '</div>'+
         '<div id="'+secId+'" style="display:'+(open?'block':'none')+';padding:1rem 1.1rem;border-top:1px solid var(--border)">'+
@@ -2038,8 +2057,7 @@ function buildSprintAccordion(oppId,rawText){
 }
 
 function toggleSprintSection(id){
-  var body=document.getElementById(id);
-  var ch=document.getElementById(id+'-ch');
+  var body=document.getElementById(id);var ch=document.getElementById(id+'-ch');
   if(!body)return;
   var open=body.style.display==='none';
   body.style.display=open?'block':'none';
@@ -2051,20 +2069,53 @@ function openSprintAnalysis(oppId){
   var meta=getSprintMeta(oppId);
   var hasAnalysis=!!(meta.analysis);
   var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+  var health=hasAnalysis?extractDealHealth(meta.analysis):null;
+
+  // Build sticky scorecard from section 2
+  var scorecardHtml=hasAnalysis?extractSprintScorecard(meta.analysis):'';
 
   var html=
-    '<div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding-bottom:.75rem;border-bottom:1px solid var(--border);margin-bottom:.75rem">'+
+    // Header row
+    '<div style="flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:.75rem;border-bottom:1px solid var(--border);margin-bottom:.75rem">'+
       '<div>'+
-        '<div style="font-size:18px;font-weight:600">⚡ Sprint Selling Analysis</div>'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+          '<div style="font-size:18px;font-weight:600">⚡ Sprint Selling Analysis</div>'+
+          (health?'<span style="font-size:14px;font-weight:700;padding:3px 12px;border-radius:6px;background:'+health.bg+';color:'+health.fg+'">'+health.label+'</span>':'')+
+        '</div>'+
         '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(d?esc(d.account)+' · '+esc(d.name):'Deal')+(savedDate?' · Last run '+savedDate:'')+'</div>'+
       '</div>'+
-      (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↺ New transcript</button>':'')+
+      '<div style="display:flex;gap:6px;flex-shrink:0">'+
+        (hasAnalysis?'<button onclick="showAddCallPanel(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">➕ Add call</button>':'') +
+        (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↺ Re-run</button>':'')+
+      '</div>'+
     '</div>'+
+
+    // Sticky vitals scorecard
+    (scorecardHtml?
+      '<div style="flex-shrink:0;margin-bottom:.75rem;padding:.75rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent2)">'+
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">SPRINT Vitals Scorecard</div>'+
+        scorecardHtml+
+      '</div>':'')+
+
+    // Input panel — new analysis
     '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'flex')+';flex-direction:column;flex:1">'+
       '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste one or more Gong call transcripts. Separate multiples with <code style="background:var(--bg);padding:1px 4px;border-radius:3px">--- CALL 2 ---</code></div>'+
       '<textarea id="sprint-transcript" placeholder="Paste Gong transcript(s) here..." style="flex:1;width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:none;line-height:1.6;color:var(--text);margin-bottom:.75rem;box-sizing:border-box;min-height:200px"></textarea>'+
       '<button onclick="runSprintAnalysis(\''+oppId+'\')" class="btn" style="padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><span>⚡</span><span>Run Sprint Analysis</span></button>'+
     '</div>'+
+
+    // Add call panel — update existing analysis
+    '<div id="sprint-addcall-panel" style="display:none;flex-direction:column;flex-shrink:0;margin-bottom:.75rem;padding:.85rem 1rem;background:#edf7f5;border:1px solid var(--light);border-radius:8px">'+
+      '<div style="font-size:14px;font-weight:600;color:var(--accent2);margin-bottom:.4rem">➕ Add new call</div>'+
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste the new Gong transcript. Claude will update the vitals scores, resolve any confirmed items, and add new insights — without wiping the existing analysis.</div>'+
+      '<textarea id="sprint-addcall-transcript" rows="7" placeholder="Paste new call transcript here..." style="width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--card);resize:none;line-height:1.6;color:var(--text);margin-bottom:.6rem;box-sizing:border-box"></textarea>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button onclick="document.getElementById(\'sprint-addcall-panel\').style.display=\'none\'" class="btn-ghost btn-sm">Cancel</button>'+
+        '<button onclick="runSprintUpdate(\''+oppId+'\')" class="btn btn-sm" style="display:flex;align-items:center;gap:5px"><span>⚡</span><span>Update analysis</span></button>'+
+      '</div>'+
+    '</div>'+
+
+    // Results
     '<div id="sprint-results-panel" style="flex:1;overflow-y:auto;display:'+(hasAnalysis?'block':'none')+'">'+
       (hasAnalysis?buildSprintAccordion(oppId,meta.analysis):'')+
     '</div>'+
@@ -2074,14 +2125,45 @@ function openSprintAnalysis(oppId){
 
   modal(html);
   var box=document.getElementById('modal-box');
-  if(box){
-    box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;height:90vh;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;';
-  }
+  if(box)box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;height:90vh;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;';
 }
 
 function showSprintInput(oppId){
   document.getElementById('sprint-input-panel').style.display='flex';
   document.getElementById('sprint-results-panel').style.display='none';
+  var ap=document.getElementById('sprint-addcall-panel');if(ap)ap.style.display='none';
+}
+
+function showAddCallPanel(oppId){
+  var ap=document.getElementById('sprint-addcall-panel');
+  if(ap)ap.style.display=ap.style.display==='none'?'flex':'none';
+}
+
+function runSprintUpdate(oppId){
+  var newTranscript=(document.getElementById('sprint-addcall-transcript')||{}).value||'';
+  if(!newTranscript.trim()){showToast('Paste the new call transcript first');return;}
+  var meta=getSprintMeta(oppId);
+  if(!meta.analysis){showToast('No existing analysis — run the full Sprint Analysis first');return;}
+  var btn=document.querySelector('#sprint-addcall-panel .btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span>⚡</span><span>Updating…</span>';}
+
+  var updatePrompt=SPRINT_PROMPT+'\n\n# UPDATE MODE\nYou are updating an EXISTING deal analysis with a new call transcript. Do NOT rewrite from scratch.\n\nRules:\n1. Keep all existing text and structure intact.\n2. For any vital scores that have new evidence: update the score and add the evidence.\n3. For any [UNCONFIRMED] items that were confirmed in the new call: replace with [CONFIRMED] and note what confirmed it.\n4. For any [UNCONFIRMED] items that remain unconfirmed: leave as-is.\n5. Add new insights to relevant sections where the new call adds information.\n6. Mark every changed item with [UPDATED ↑] (improved) or [UPDATED ↓] (worsened) or [CONFIRMED] so changes are easy to spot.\n7. Update the POV for Re-Engagement to reflect the latest call.\n8. Reproduce the FULL updated brief.';
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:5000,stream:false,
+    system:updatePrompt,
+    messages:[{role:'user',content:'EXISTING ANALYSIS:\n\n'+meta.analysis+'\n\n---\n\nNEW CALL TRANSCRIPT:\n\n'+newTranscript+'\n\n---\n\nPlease update the analysis based on the new call, following the UPDATE MODE rules.'}]
+  })}).then(function(r){return r.json();}).then(function(res){
+    var text=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
+    if(!text){showToast('No response — try again');if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Update analysis</span>';}return;}
+    saveSprintMeta(oppId,{analysis:text,savedAt:new Date().toISOString()});
+    closeModal();openSprintAnalysis(oppId);
+    if(_lastDeals.length)renderKanban(_lastDeals);
+    showToast('Analysis updated with new call ✓');
+  }).catch(function(e){
+    showToast('Error: '+e.message);
+    if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Update analysis</span>';}
+  });
 }
 
 function runSprintAnalysis(oppId){
