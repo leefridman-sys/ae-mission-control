@@ -2583,13 +2583,22 @@ function loadProspecting(){
     '<div id="ob-scorecard" style="margin-bottom:1.25rem"></div>'+
     '<div id="ob-engaged" style="margin-bottom:1.25rem"></div>'+
     '<div id="ob-queue" style="margin-bottom:1.25rem"></div>'+
-    '<div style="display:flex;gap:6px;margin-bottom:.75rem;align-items:center">'+
-      '<button class="btn btn-sm" id="ob-f-all" onclick="setObFilter(\'all\')">All ('+accounts.length+')</button>'+
-      '<button class="btn-ghost btn-sm" id="ob-f-t1" onclick="setObFilter(\'t1\')">Tier 1 ('+accounts.filter(function(a){return a.tier===1;}).length+')</button>'+
-      '<button class="btn-ghost btn-sm" id="ob-f-t2" onclick="setObFilter(\'t2\')">Tier 2 ('+accounts.filter(function(a){return a.tier===2;}).length+')</button>'+
-      '<button class="btn-ghost btn-sm" id="ob-f-t3" onclick="setObFilter(\'t3\')">Tier 3 ('+accounts.filter(function(a){return a.tier===3;}).length+')</button>'+
-    '</div>'+
-    '<div id="ob-table"></div>';
+    '<div id="ob-accounts-section">'+
+      '<div onclick="toggleObSection(\'accounts\')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:.6rem .85rem;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:.75rem;user-select:none">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span id="ob-accounts-chevron" style="font-size:12px;color:var(--muted);transition:transform .2s">'+(getObSectionOpen('accounts')?'▼':'▶')+'</span>'+
+          '<span style="font-size:15px;font-weight:500">Target Accounts</span>'+
+          '<span style="font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1px 8px;color:var(--muted)">'+accounts.length+'</span>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px" onclick="event.stopPropagation()">'+
+          '<button class="btn btn-sm" id="ob-f-all" onclick="setObFilter(\'all\')">All</button>'+
+          '<button class="btn-ghost btn-sm" id="ob-f-t1" onclick="setObFilter(\'t1\')">T1 ('+accounts.filter(function(a){return a.tier===1;}).length+')</button>'+
+          '<button class="btn-ghost btn-sm" id="ob-f-t2" onclick="setObFilter(\'t2\')">T2 ('+accounts.filter(function(a){return a.tier===2;}).length+')</button>'+
+          '<button class="btn-ghost btn-sm" id="ob-f-t3" onclick="setObFilter(\'t3\')">T3 ('+accounts.filter(function(a){return a.tier===3;}).length+')</button>'+
+        '</div>'+
+      '</div>'+
+      '<div id="ob-table" style="display:'+(getObSectionOpen('accounts')?'':'none')+'"></div>'+
+    '</div>';
   renderObTable();
   renderObQueue();
   renderObScorecard();
@@ -2656,19 +2665,22 @@ function renderObQueue(){
   var todayCount=pending.filter(function(i){return i.isToday;}).length;
   var overdueCount=pending.filter(function(i){return i.date<todayStr;}).length;
 
+  var queueOpen=getObSectionOpen('queue');
   var html='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">'+
-    '<div style="padding:.85rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
-      '<div>'+
-        '<div style="font-size:16px;font-weight:500">Execution Queue</div>'+
-        '<div style="font-size:14px;color:var(--muted);margin-top:2px">'+
-          (overdueCount?'<span style="color:#ef4444;font-weight:600">'+overdueCount+' overdue</span> · ':'')+
-          (todayCount?'<span style="color:var(--accent);font-weight:600">'+todayCount+' due today</span> · ':'')+
-          pending.length+' pending · '+completed.length+' done this week'+
+    '<div onclick="toggleObSection(\'queue\')" style="padding:.85rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<span id="ob-queue-chevron" style="font-size:12px;color:var(--muted)">'+( queueOpen?'▼':'▶')+'</span>'+
+        '<div>'+
+          '<div style="font-size:16px;font-weight:500">Execution Queue</div>'+
+          '<div style="font-size:14px;color:var(--muted);margin-top:2px">'+
+            (overdueCount?'<span style="color:#ef4444;font-weight:600">'+overdueCount+' overdue</span> · ':'')+
+            (todayCount?'<span style="color:var(--accent);font-weight:600">'+todayCount+' due today</span> · ':'')+
+            pending.length+' pending · '+completed.length+' done this week'+
+          '</div>'+
         '</div>'+
       '</div>'+
-      '<button onclick="toggleObQueue()" id="ob-queue-toggle" class="btn-ghost btn-sm" style="font-size:14px">Hide</button>'+
     '</div>'+
-    '<div id="ob-queue-body">';
+    '<div id="ob-queue-body" style="display:'+(queueOpen?'':'none')+'">';
 
   function renderItem(item,isDone){
     var cc=channelColor[item.channel]||'var(--muted)';
@@ -2721,13 +2733,23 @@ function renderObQueue(){
 }
 
 var _obQueueOpen=true;
-function toggleObQueue(){
-  _obQueueOpen=!_obQueueOpen;
-  var body=document.getElementById('ob-queue-body');
-  var btn=document.getElementById('ob-queue-toggle');
-  if(body)body.style.display=_obQueueOpen?'':'none';
-  if(btn)btn.textContent=_obQueueOpen?'Hide':'Show';
+function getObSectionOpen(key){
+  try{var s=JSON.parse(localStorage.getItem('ob_sections')||'{}');return s[key]!==false;}catch(e){return true;}
 }
+function toggleObSection(key){
+  try{
+    var s=JSON.parse(localStorage.getItem('ob_sections')||'{}');
+    s[key]=!getObSectionOpen(key);
+    localStorage.setItem('ob_sections',JSON.stringify(s));
+  }catch(e){}
+  // Update chevron and body visibility
+  var chevron=document.getElementById('ob-'+key+'-chevron');
+  var body=document.getElementById(key==='accounts'?'ob-table':'ob-'+key+'-body');
+  var open=getObSectionOpen(key);
+  if(chevron)chevron.textContent=open?'▼':'▶';
+  if(body)body.style.display=open?'':'none';
+}
+function toggleObQueue(){toggleObSection('queue');}// legacy alias
 
 function getLocalActivityStats(){
   // Compute this-week's logged touches from localStorage
@@ -3883,14 +3905,20 @@ function renderEngagedLeads(){
     '</div>';
   }
 
+  var engagedOpen=getObSectionOpen('engaged');
   el.innerHTML=
-    '<div class="card" style="border-left:3px solid var(--accent)">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.85rem">'+
-        '<div style="font-size:16px;font-weight:500">🎯 Engaged Leads</div>'+
-        '<span style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:13px;font-weight:600">'+rows.length+'</span>'+
+    '<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:12px;overflow:hidden">'+
+      '<div onclick="toggleObSection(\'engaged\')" style="padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none'+(engagedOpen?';border-bottom:1px solid var(--border)':'')+'">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span id="ob-engaged-chevron" style="font-size:12px;color:var(--muted)">'+(engagedOpen?'▼':'▶')+'</span>'+
+          '<div style="font-size:16px;font-weight:500">🎯 Engaged Leads</div>'+
+          '<span style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:13px;font-weight:600">'+rows.length+'</span>'+
+        '</div>'+
       '</div>'+
-      (bookedRows.length?'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Meeting booked</div>'+bookedRows.map(row).join(''):'') +
-      (engagedRows.length?(bookedRows.length?'<div style="height:10px"></div>':'')+'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Engaged (no meeting yet)</div>'+engagedRows.map(row).join(''):'') +
+      '<div id="ob-engaged-body" style="display:'+(engagedOpen?'':'none')+';padding:.75rem 1.1rem">'+
+        (bookedRows.length?'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Meeting booked</div>'+bookedRows.map(row).join(''):'') +
+        (engagedRows.length?(bookedRows.length?'<div style="height:10px"></div>':'')+'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Engaged (no meeting yet)</div>'+engagedRows.map(row).join(''):'') +
+      '</div>'+
     '</div>';
 }
 
