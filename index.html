@@ -1808,6 +1808,75 @@ function renderPipelineList(deals){
     }).join('')+'</div>';
 }
 
+function getDealMeta(oppId){
+  try{return JSON.parse(localStorage.getItem('pipeline_meta_'+oppId)||'{}');}catch(e){return{};}
+}
+function saveDealMeta(oppId,meta){
+  try{localStorage.setItem('pipeline_meta_'+oppId,JSON.stringify(meta));}catch(e){}
+}
+
+function openDealStrategy(d,evt){
+  if(evt)evt.stopPropagation();
+  var meta=getDealMeta(d.id);
+
+  var html=
+    '<div class="modal-title" style="display:flex;align-items:center;gap:10px">'+
+      '<span>💬</span>'+
+      '<div style="min-width:0">'+
+        '<div style="font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+'</div>'+
+        '<div style="font-size:14px;color:var(--muted);font-weight:400">'+esc(d.account)+' · '+fmt$(d.amount)+(d.stage?' · '+esc(d.stage):'')+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    // Claude project URL
+    '<div style="padding:.85rem 1rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:1rem">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'+
+        '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Claude Project</div>'+
+        (meta.claudeUrl?'<a href="'+esc(meta.claudeUrl)+'" target="_blank" style="font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px">Open ↗</a>':'')+
+      '</div>'+
+      '<input id="ds-claude-url" type="url" value="'+esc(meta.claudeUrl||'')+'" placeholder="Paste your claude.ai/project/... URL for this deal" style="width:100%;padding:6px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--card)">'+
+      '<div style="font-size:12px;color:var(--muted);margin-top:4px">Paste once — opens in the Claude mobile app when you\'re on the go.</div>'+
+    '</div>'+
+
+    // Strategy notes
+    '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Deal notes</div>'+
+    '<textarea id="ds-notes" rows="8" placeholder="Strategy notes, objections, stakeholder map, open questions, next steps..." style="width:100%;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text)">'+esc(meta.notes||'')+'</textarea>'+
+
+    '<div class="modal-footer" style="justify-content:space-between">'+
+      '<div style="font-size:13px;color:var(--muted)">'+
+        (meta.savedAt?'Last saved '+new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Not yet saved')+
+      '</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
+        '<button class="btn" onclick="saveDealStrategyModal(\''+esc(d.id)+'\')">Save</button>'+
+      '</div>'+
+    '</div>';
+
+  modal(html);
+  document.getElementById('modal-box').style.maxWidth='600px';
+}
+
+function saveDealStrategyModal(oppId){
+  var claudeUrl=(document.getElementById('ds-claude-url')||{}).value||'';
+  var notes=(document.getElementById('ds-notes')||{}).value||'';
+  saveDealMeta(oppId,{claudeUrl:claudeUrl.trim(),notes:notes,savedAt:new Date().toISOString()});
+  showToast('Deal notes saved');
+  closeModal();
+  // Re-render kanban so the 💬 button updates its color
+  var body=document.getElementById('pl-body');
+  if(body&&pipelineView==='kanban'){
+    var cards=body.querySelectorAll('.kanban-card');
+    cards.forEach(function(card){
+      var btn=card.querySelector('button[title="Strategy chat / Claude project"]');
+      if(btn&&btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes(oppId)){
+        btn.style.background=claudeUrl?'var(--accent)':'var(--bg)';
+        btn.style.borderColor=claudeUrl?'var(--accent)':'var(--border)';
+        btn.style.color=claudeUrl?'#fff':'var(--muted)';
+      }
+    });
+  }
+}
+
 function dealInsight(deal,evt){
   if(evt)evt.stopPropagation();
   modal('<div class="modal-title">✦ Deal Intelligence</div>'+
