@@ -1932,96 +1932,174 @@ function saveSprintMeta(oppId,meta){
   try{localStorage.setItem('pipeline_sprint_'+oppId,JSON.stringify(meta));}catch(e){}
 }
 
+// ── Sprint body renderer ──────────────────────────────────────────────────────
+function sprintRenderBody(raw){
+  // 1. Escape HTML special chars
+  var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 2. Render markdown tables
+  t=t.replace(/((?:\|[^\n]+\|\n)+)/g,function(block){
+    var rows=block.trim().split('\n');
+    // Filter out separator rows (---|---|---)
+    var dataRows=rows.filter(function(r){return!/^\|[\s|:-]+\|$/.test(r.trim());});
+    if(dataRows.length<2)return block;
+    var html='<div style="overflow-x:auto;margin:10px 0"><table style="width:100%;border-collapse:collapse;font-size:14px">';
+    dataRows.forEach(function(row,ri){
+      var cells=row.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
+      var tag=ri===0?'th':'td';
+      var rowBg=ri===0?'background:var(--accent2);color:#fff;font-weight:600':'background:'+(ri%2===0?'var(--bg)':'var(--card)');
+      html+='<tr>';
+      cells.forEach(function(cell,ci){
+        // Color-code X/6 scores
+        var content=cell;
+        if(ri>0&&/^\d+\/\d+$/.test(cell)){
+          var s=cell.split('/');var pct=parseInt(s[0])/parseInt(s[1]);
+          var sc=pct>=0.67?{bg:'#d1fae5',fg:'#065f46'}:pct>=0.34?{bg:'#fef3c7',fg:'#92400e'}:{bg:'#fee2e2',fg:'#991b1b'};
+          content='<span style="font-weight:700;color:'+sc.fg+';background:'+sc.bg+';padding:2px 8px;border-radius:10px">'+cell+'</span>';
+        }
+        // Color-code AMBER/GREEN/RED in cells
+        content=content.replace(/\b(AMBER)\b/g,'<span style="background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+        content=content.replace(/\b(GREEN)\b/g,'<span style="background:#d1fae5;color:#065f46;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+        content=content.replace(/\b(RED)\b/g,'<span style="background:#fee2e2;color:#991b1b;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
+        html+='<'+tag+' style="padding:8px 12px;border:1px solid var(--border);'+rowBg+';vertical-align:top">'+content+'</'+tag+'>';
+      });
+      html+='</tr>';
+    });
+    html+='</table></div>';
+    return html;
+  });
+
+  // 3. Overall Deal Health line → big colored badge
+  t=t.replace(/Overall Deal Health[:\s]+([A-Z]+)([^\n<]*)/gi,function(m,status,rest){
+    var uc=status.toUpperCase();
+    var sc=uc==='GREEN'?{bg:'#d1fae5',fg:'#065f46'}:uc==='RED'?{bg:'#fee2e2',fg:'#991b1b'}:{bg:'#fef3c7',fg:'#92400e'};
+    return '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;border:2px solid '+sc.fg+'20;background:'+sc.bg+';margin:8px 0">'+
+      '<span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+sc.fg+'">Overall Deal Health</span>'+
+      '<span style="font-size:16px;font-weight:700;color:'+sc.fg+';padding:3px 12px;background:'+sc.fg+'22;border-radius:6px">'+status+(rest?rest.trim():'')+'</span>'+
+      '</div>';
+  });
+
+  // 4. UNCONFIRMED — catch [UNCONFIRMED] and [UNCONFIRMED — any text]
+  t=t.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){
+    return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fcd34d;white-space:nowrap;margin:0 2px">'+m+'</span>';
+  });
+
+  // 5. ### sub-headings (not section headings)
+  t=t.replace(/^###\s+(.+)$/gm,'<div style="font-size:14px;font-weight:700;color:var(--accent2);margin:.8rem 0 .3rem;padding-bottom:.2rem;border-bottom:1px solid var(--light)">$1</div>');
+
+  // 6. Bold — do BEFORE italic, use non-greedy across non-newlines only
+  t=t.replace(/\*\*([^*\n]+)\*\*/g,'<strong style="font-weight:700;color:var(--text)">$1</strong>');
+
+  // 7. Italic
+  t=t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+
+  // 8. Horizontal rules
+  t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:.75rem 0">');
+
+  // 9. Bullets
+  t=t.replace(/^[-•]\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:5px;align-items:flex-start"><span style="color:var(--accent);flex-shrink:0;font-weight:700;margin-top:1px">›</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$1</span></div>');
+
+  // 10. Paragraphs
+  t=t.replace(/\n\n/g,'</p><p style="margin:6px 0;font-size:15px;line-height:1.7;color:var(--text)">');
+  t=t.replace(/\n/g,'<br>');
+
+  return '<p style="margin:0;font-size:15px;line-height:1.7;color:var(--text)">'+t+'</p>';
+}
+
+function buildSprintAccordion(oppId,rawText){
+  // Split on ## N. numbered section headings
+  var parts=rawText.split(/(?=^## \d+\.)/m);
+  var html='';
+  parts.forEach(function(part,idx){
+    part=part.trim();if(!part)return;
+    var m=part.match(/^## (\d+)\.\s*(.+)/);
+    if(!m){
+      // preamble before section 1
+      html+='<div style="margin-bottom:.75rem">'+sprintRenderBody(part)+'</div>';
+      return;
+    }
+    var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
+    var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
+    var secId='spasc-'+oppId+'-'+num;
+    // Default: first section open
+    var open=num==='1';
+    html+=
+      '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px">'+
+        '<div onclick="toggleSprintSection(\''+secId+'\')" style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:var(--bg);cursor:pointer;user-select:none">'+
+          '<span id="'+secId+'-ch" style="font-size:11px;color:var(--muted);transition:transform .15s">'+(open?'▼':'▶')+'</span>'+
+          '<div style="flex:1;font-size:15px;font-weight:600;color:var(--text)"><span style="color:var(--accent);margin-right:5px">'+num+'.</span>'+esc(title)+'</div>'+
+        '</div>'+
+        '<div id="'+secId+'" style="display:'+(open?'block':'none')+';padding:1rem 1.1rem;border-top:1px solid var(--border)">'+
+          sprintRenderBody(body)+
+        '</div>'+
+      '</div>';
+  });
+  return html;
+}
+
+function toggleSprintSection(id){
+  var body=document.getElementById(id);
+  var ch=document.getElementById(id+'-ch');
+  if(!body)return;
+  var open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(ch)ch.textContent=open?'▼':'▶';
+}
+
 function openSprintAnalysis(oppId){
   var d=_dealsById[oppId];
   var meta=getSprintMeta(oppId);
-
-  function renderAnalysisHtml(text){
-    // Convert markdown sections to styled HTML
-    return text
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/^## (.+)$/gm,'<h3 style="font-size:16px;font-weight:700;color:var(--accent2);margin:1.25rem 0 .5rem;padding-bottom:.3rem;border-bottom:2px solid var(--light)">$1</h3>')
-      .replace(/^\*\*(.+?)\*\*$/gm,'<div style="font-size:14px;font-weight:700;color:var(--text);margin:.6rem 0 .2rem">$1</div>')
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/\[UNCONFIRMED\]/g,'<span style="background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #fcd34d">UNCONFIRMED</span>')
-      .replace(/^- (.+)$/gm,'<div style="display:flex;gap:8px;margin-bottom:4px;font-size:14px;line-height:1.6"><span style="color:var(--accent);flex-shrink:0;margin-top:2px">›</span><span>$1</span></div>')
-      .replace(/\n\n/g,'</p><p style="margin:4px 0;font-size:15px;line-height:1.7;color:var(--text)">')
-      .replace(/\n/g,'<br>');
-  }
-
   var hasAnalysis=!!(meta.analysis);
-  var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+  var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
 
   var html=
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
+    '<div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding-bottom:.75rem;border-bottom:1px solid var(--border);margin-bottom:.75rem">'+
       '<div>'+
         '<div style="font-size:18px;font-weight:600">⚡ Sprint Selling Analysis</div>'+
-        '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(d?esc(d.account)+' · '+esc(d.name):'Deal'+(savedDate?' · Last run '+savedDate:''))+'</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(d?esc(d.account)+' · '+esc(d.name):'Deal')+(savedDate?' · Last run '+savedDate:'')+'</div>'+
       '</div>'+
-      (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px;flex-shrink:0">↺ Re-run</button>':'')+
+      (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↺ New transcript</button>':'')+
     '</div>'+
-
-    // Input panel (shown when no analysis or re-running)
-    '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'block')+'">'+
-      '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste one or more Gong call transcripts below. You can paste multiple — just separate them with a line like <code style="background:var(--bg);padding:1px 4px;border-radius:3px">--- CALL 2 ---</code></div>'+
-      '<textarea id="sprint-transcript" rows="12" placeholder="Paste Gong transcript(s) here..." style="width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text);margin-bottom:.75rem"></textarea>'+
-      '<button onclick="runSprintAnalysis(\''+oppId+'\')" class="btn" style="width:100%;padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px">'+
-        '<span>⚡</span><span>Run Sprint Analysis</span>'+
-      '</button>'+
+    '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'flex')+';flex-direction:column;flex:1">'+
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste one or more Gong call transcripts. Separate multiples with <code style="background:var(--bg);padding:1px 4px;border-radius:3px">--- CALL 2 ---</code></div>'+
+      '<textarea id="sprint-transcript" placeholder="Paste Gong transcript(s) here..." style="flex:1;width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:none;line-height:1.6;color:var(--text);margin-bottom:.75rem;box-sizing:border-box;min-height:200px"></textarea>'+
+      '<button onclick="runSprintAnalysis(\''+oppId+'\')" class="btn" style="padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><span>⚡</span><span>Run Sprint Analysis</span></button>'+
     '</div>'+
-
-    // Results panel
-    '<div id="sprint-results-panel" style="display:'+(hasAnalysis?'block':'none')+'">'+
-      (hasAnalysis?'<div style="line-height:1.7"><p style="margin:0;font-size:15px;color:var(--text)">'+renderAnalysisHtml(meta.analysis)+'</p></div>':'')+
+    '<div id="sprint-results-panel" style="flex:1;overflow-y:auto;display:'+(hasAnalysis?'block':'none')+'">'+
+      (hasAnalysis?buildSprintAccordion(oppId,meta.analysis):'')+
     '</div>'+
-
-    '<div class="modal-footer" style="justify-content:flex-end">'+
+    '<div style="flex-shrink:0;padding-top:.75rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;margin-top:.75rem">'+
       '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
     '</div>';
 
   modal(html);
-  document.getElementById('modal-box').style.maxWidth='820px';
-  document.getElementById('modal-box').style.maxHeight='88vh';
-  document.getElementById('modal-box').style.overflow='hidden';
-  document.getElementById('modal-box').style.display='flex';
-  document.getElementById('modal-box').style.flexDirection='column';
-  // Make results scrollable
-  var results=document.getElementById('sprint-results-panel');
-  if(results)results.style.cssText+='overflow-y:auto;flex:1;padding-right:4px;';
+  var box=document.getElementById('modal-box');
+  if(box){
+    box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;height:90vh;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;';
+  }
 }
 
 function showSprintInput(oppId){
-  var input=document.getElementById('sprint-input-panel');
-  var results=document.getElementById('sprint-results-panel');
-  if(input)input.style.display='block';
-  if(results)results.style.display='none';
+  document.getElementById('sprint-input-panel').style.display='flex';
+  document.getElementById('sprint-results-panel').style.display='none';
 }
 
 function runSprintAnalysis(oppId){
   var transcript=(document.getElementById('sprint-transcript')||{}).value||'';
   if(!transcript.trim()){showToast('Paste a transcript first');return;}
-
   var d=_dealsById[oppId];
   var dealContext=d?'\n\nDEAL CONTEXT:\n- Account: '+d.account+'\n- Opportunity: '+d.name+'\n- Stage: '+(d.stage||'Unknown')+'\n- Amount: '+fmt$(d.amount)+(d.nextStep?'\n- Next step: '+d.nextStep:''):'';
-
   var btn=document.querySelector('#sprint-input-panel .btn');
-  if(btn){btn.disabled=true;btn.innerHTML='<span>⚡</span><span>Analyzing...</span>';}
-
+  if(btn){btn.disabled=true;btn.innerHTML='<span>⚡</span><span>Analyzing…</span>';}
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     model:'claude-sonnet-4-6',max_tokens:4000,stream:false,
     system:SPRINT_PROMPT,
-    messages:[{role:'user',content:'Please analyze the following Gong call transcript(s) and produce the full SPRINT Selling deal intelligence brief.'+dealContext+'\n\n---\n\n'+transcript}]
+    messages:[{role:'user',content:'Analyze the following Gong call transcript(s) and produce the full SPRINT Selling deal intelligence brief.'+dealContext+'\n\n---\n\n'+transcript}]
   })}).then(function(r){return r.json();}).then(function(res){
     var text=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
     if(!text){showToast('No response — try again');if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}return;}
-
-    // Save
     saveSprintMeta(oppId,{analysis:text,savedAt:new Date().toISOString()});
-
-    // Re-open to show results
-    closeModal();
-    openSprintAnalysis(oppId);
-    // Refresh kanban so ⚡ button turns dark
+    closeModal();openSprintAnalysis(oppId);
     if(_lastDeals.length)renderKanban(_lastDeals);
   }).catch(function(e){
     showToast('Error: '+e.message);
