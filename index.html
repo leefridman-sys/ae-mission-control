@@ -1916,10 +1916,11 @@ For each vital: score X/6, evidence from transcript, gaps/unconfirmed, recommend
 Customer pain in their own language. Specific — business impact, operational friction, emotional weight. Sharp enough they'd say "yes, exactly."
 
 ## 4. Power Map
-Every named stakeholder: role, agenda, classification (Champion / Economic Buyer / Influencer / Blocker / Unknown). Flag who is missing and needs to be brought in.
+Output as a markdown table with exactly these columns: | Name | Role | Classification | Agenda / Notes |
+Classifications: Champion / Economic Buyer / Influencer / Blocker / Unknown. Add a final row for each stakeholder who is Missing and needs to be identified or brought in.
 
 ## 5. Vision & Value
-Winning future state for this customer. Connect their specific pain directly to Cognota's solution. Quantify where possible.
+Two parts: (1) A 2–3 sentence "Winning Future State" narrative. (2) A markdown table titled "Direct Pain-to-Solution Connection" with columns: | Pain | Cognota Solution | Business Outcome | — one row per pain point identified.
 
 ## 6. Consensus & Deal Strategy
 How to build/expand internal consensus. Key risks, objections to get ahead of, how to advance across the buying group.
@@ -1936,10 +1937,13 @@ function saveSprintMeta(oppId,meta){
 
 // ── Sprint body renderer ──────────────────────────────────────────────────────
 function sprintColorCell(content){
+  // Bold first
+  content=content.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   content=content.replace(/\b(AMBER)\b/g,'<span style="background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
   content=content.replace(/\b(GREEN)\b/g,'<span style="background:#d1fae5;color:#065f46;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
   content=content.replace(/\b(RED)\b/g,'<span style="background:#fee2e2;color:#991b1b;font-weight:700;padding:1px 6px;border-radius:4px">$1</span>');
   content=content.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:1px 5px;border-radius:3px;border:1px solid #fcd34d;margin:0 2px">'+m+'</span>';});
+  content=content.replace(/\[CONFIRMED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:1px 5px;border-radius:3px;border:1px solid #6ee7b7;margin:0 2px">'+m+'</span>';});
   return content;
 }
 
@@ -1990,25 +1994,31 @@ function sprintRenderBody(raw){
   // UNCONFIRMED
   t=t.replace(/\[UNCONFIRMED[^\]]*\]/g,function(m){return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fcd34d;white-space:nowrap;margin:0 2px">'+m+'</span>';});
   // # Title (preamble headings)
-  t=t.replace(/^# ([^#\n].+)$/gm,'<div style="font-size:19px;font-weight:700;color:var(--text);margin:.25rem 0 .15rem;line-height:1.3">$1</div>');
+  t=t.replace(/^# ([^#\n].+)$/gm,'<div style="font-size:19px;font-weight:700;color:var(--text,#1a1714);margin:.25rem 0 .15rem;line-height:1.3">$1</div>');
   // ## Sub-title (preamble)
-  t=t.replace(/^## ([^#\n].+)$/gm,'<div style="font-size:14px;color:var(--muted);margin-bottom:.5rem">$1</div>');
-  // ### sub-headings
-  t=t.replace(/^###\s+(.+)$/gm,'<div style="font-size:14px;font-weight:700;color:var(--accent2);margin:.8rem 0 .3rem;padding-bottom:.2rem;border-bottom:1px solid var(--light)">$1</div>');
-  // Bold — use CSS class to avoid GPU compositing blur on macOS
+  t=t.replace(/^## ([^#\n].+)$/gm,'<div style="font-size:14px;color:var(--muted,#9a9590);margin-bottom:.35rem">$1</div>');
+  // ### Vital headings (PAIN/POWER/VISION/VALUE/CONSENSUS) — prominent
+  t=t.replace(/^###\s+(.*\b(?:PAIN|POWER|VISION|VALUE|CONSENSUS)\b.*)$/gm,
+    '<div style="font-size:17px;font-weight:800;color:#2d5e54;margin:1rem 0 .3rem;padding:.45rem .8rem;background:#edf7f5;border-radius:6px;border-left:3px solid #3d7a6e">$1</div>');
+  // ### regular sub-headings (Building Consensus, Mutual Action Plan, etc.) — medium
+  t=t.replace(/^###\s+(.+)$/gm,'<div style="font-size:15px;font-weight:700;color:#2d5e54;margin:.6rem 0 .15rem">$1</div>');
+  // Next Sprint Action callout label
+  t=t.replace(/\*\*Next Sprint Action[:\s]*\*\*/gi,
+    '<span style="display:inline-block;background:#edf7f5;color:#2d5e54;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px;border:1px solid #b1d9d1;text-transform:uppercase;letter-spacing:.04em">⚡ Next Sprint Action</span> ');
+  // Bold
   t=t.replace(/\*\*([^*\n]{1,120})\*\*/g,'<b class="sprint-b">$1</b>');
   // Italic
   t=t.replace(/\*([^*\n]{1,80})\*/g,'<em>$1</em>');
   // HR
-  t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:.75rem 0">');
+  t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid #e2ddd7;margin:.4rem 0">');
   // Bullets
-  t=t.replace(/^[-•]\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:6px;align-items:flex-start"><span style="color:var(--accent);flex-shrink:0;font-weight:700;margin-top:2px;font-size:15px">›</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$1</span></div>');
+  t=t.replace(/^[-•]\s+(.+)$/gm,'<div style="display:flex;gap:8px;margin-bottom:3px;align-items:flex-start"><span style="color:#3d7a6e;flex-shrink:0;font-weight:700;margin-top:2px">›</span><span style="font-size:15px;line-height:1.6;color:var(--text,#1a1714)">$1</span></div>');
   // Numbered list items
-  t=t.replace(/^(\d+)\.\s+(.+)$/gm,'<div style="display:flex;gap:9px;margin-bottom:6px;align-items:flex-start"><span style="color:var(--accent2);flex-shrink:0;font-weight:700;font-size:14px;min-width:18px">$1.</span><span style="font-size:15px;line-height:1.65;color:var(--text)">$2</span></div>');
-  // Paragraphs
-  t=t.replace(/\n\n/g,'</p><p style="margin:6px 0;font-size:15px;line-height:1.7;color:var(--text)">');
+  t=t.replace(/^(\d+)\.\s+(.+)$/gm,'<div style="display:flex;gap:8px;margin-bottom:3px;align-items:flex-start"><span style="color:#2d5e54;flex-shrink:0;font-weight:700;font-size:14px;min-width:18px">$1.</span><span style="font-size:15px;line-height:1.6;color:var(--text,#1a1714)">$2</span></div>');
+  // Paragraphs — tight
+  t=t.replace(/\n\n/g,'</p><p style="margin:3px 0;font-size:15px;line-height:1.65;color:var(--text,#1a1714)">');
   t=t.replace(/\n/g,'<br>');
-  return '<p style="margin:0;font-size:15px;line-height:1.7;color:var(--text)">'+t+'</p>';
+  return '<p style="margin:0;font-size:15px;line-height:1.65;color:var(--text,#1a1714)">'+t+'</p>';
 }
 
 // Extract the SPRINT vitals summary table from section 2 for the sticky header
@@ -2085,7 +2095,7 @@ function openSprintInBrowser(oppId){
   var health=extractDealHealth(meta.analysis);
   var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
 
-  // Build all sections expanded (no accordion needed in full browser view)
+  // Build all sections expanded
   function buildFullSections(rawText){
     var parts=rawText.split(/(?=^## \d+\.)/m);
     var html='';
@@ -2093,12 +2103,19 @@ function openSprintInBrowser(oppId){
       part=part.trim();if(!part)return;
       var m=part.match(/^## (\d+)\.\s*(.+)/);
       if(!m){
+        // Preamble — strip heading lines, skip if nothing left
         var bodyOnly=part.replace(/^#{1,3}[^\n]*\n?/gm,'').trim();
-        if(bodyOnly)html+='<div class="preamble">'+sprintRenderBody(bodyOnly)+'</div>';
+        if(bodyOnly&&bodyOnly.replace(/\s/g,''))
+          html+='<div class="preamble">'+sprintRenderBody(bodyOnly)+'</div>';
         return;
       }
       var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
       var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
+      // Section 2: strip the summary scorecard table (shown at top already)
+      if(num==='2'){
+        body=body.replace(/^[ \t]*(?:\|[^\n]*\n){2,}/m,'').trim();
+      }
+      if(!body)return; // skip empty sections
       html+=
         '<div class="section">'+
           '<div class="section-hdr"><span class="section-num">'+num+'</span><span>'+esc(title)+'</span></div>'+
@@ -2127,11 +2144,13 @@ function openSprintInBrowser(oppId){
     '.section-hdr span:last-child{font-size:16px;font-weight:700;color:#1a1714;}'+
     '.section-body{padding:1.1rem 1.25rem;}'+
     '.preamble{background:#fff;border-radius:10px;border:1px solid #e2ddd7;padding:1rem 1.25rem;margin-bottom:1rem;}'+
-    'table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0;}'+
+    'table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 4px;}'+
     'th{text-align:left;padding:8px 12px;background:#2d5e54;color:#fff;font-weight:600;border:1px solid #e2ddd7;}'+
     'td{padding:8px 12px;border:1px solid #e2ddd7;vertical-align:top;line-height:1.5;}'+
     'tr:nth-child(even) td{background:#f5f2ee;}'+
+    'p{margin:3px 0;}'+
     '.sprint-b{font-weight:700;}'+
+    '.section-body p+p{margin-top:2px;}'+
     '@media print{body{background:#fff;}'+
     '.section,.preamble,.scorecard{break-inside:avoid;box-shadow:none;border:1px solid #ccc;}}'+
   '</style></head><body><div class="wrap">'+
