@@ -2065,6 +2065,14 @@ function toggleSprintSection(id){
   if(ch)ch.textContent=open?'▼':'▶';
 }
 
+function copySprintAnalysis(oppId){
+  var meta=getSprintMeta(oppId);
+  if(!meta.analysis){showToast('No analysis to copy');return;}
+  navigator.clipboard.writeText(meta.analysis).then(function(){
+    showToast('Sprint analysis copied to clipboard ✓');
+  }).catch(function(){showToast('Copy failed — select text manually');});
+}
+
 function openSprintAnalysis(oppId){
   var d=_dealsById[oppId];
   var meta=getSprintMeta(oppId);
@@ -2086,8 +2094,8 @@ function openSprintAnalysis(oppId){
         '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(d?esc(d.account)+' · '+esc(d.name):'Deal')+(savedDate?' · Last run '+savedDate:'')+'</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;flex-shrink:0">'+
-        (hasAnalysis?'<button onclick="showAddCallPanel(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">➕ Add call</button>':'') +
-        (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↺ Re-run</button>':'')+
+        (hasAnalysis?'<button onclick="copySprintAnalysis(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">📋 Copy all</button>':'') +
+        (hasAnalysis?'<button onclick="showAddCallPanel(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">➕ Add call</button>':'')+
       '</div>'+
     '</div>'+
 
