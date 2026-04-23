@@ -726,13 +726,13 @@
   .pp-subtitle { font-size: 14px; color: #9a9590; margin-bottom: 40px; }
 
   .pp-roi-hero {
-    text-align: center; padding: 36px 0 32px;
+    padding: 28px 0 24px;
     border-top: 1px solid #e2ddd7; border-bottom: 1px solid #e2ddd7;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
-  .pp-roi-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #9a9590; margin-bottom: 8px; }
-  .pp-roi-number { font-size: 88px; font-weight: 300; letter-spacing: -4px; color: #1b3f39; line-height: 1; }
-  .pp-roi-sub { font-size: 13px; color: #9a9590; margin-top: 8px; }
+  .pp-roi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #9a9590; margin-bottom: 8px; }
+  .pp-roi-number { font-size: 80px; font-weight: 300; letter-spacing: -4px; color: #1b3f39; line-height: 1; }
+  .pp-roi-sub { font-size: 12px; color: #9a9590; margin-top: 6px; }
 
   .pp-stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
@@ -1240,21 +1240,21 @@
               <div class="value" id="out_fte">0</div>
             </div>
             <div class="hero-stat">
-              <span class="label">Months to payback <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+              <span class="label">Months to payback <span style="font-size:11px;background:#fff5f0;color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Y1</span>
                 <span class="tip" data-tip="Investment ÷ (Year 1 value ÷ 12), adjusted for onboarding and change management ramp.">?</span>
               </span>
               <div class="value" id="out_payback">0</div>
               <div style="font-size:12px;color:var(--mid-grey-1);margin-top:2px">Ramped: <span id="out_payback_ramped" style="font-weight:600">—</span></div>
             </div>
             <div class="hero-stat">
-              <span class="label">Year 1 value created <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+              <span class="label">Value created <span style="font-size:11px;background:#fff5f0;color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Y1</span>
                 <span class="tip" data-tip="Fully ramped value × utilization rate. Accounts for onboarding and change management lag.">?</span>
               </span>
               <div class="value" id="out_valueTotal">$0</div>
               <div style="font-size:12px;color:var(--mid-grey-1);margin-top:2px">Fully ramped: <span id="out_valueTotal_ramped" style="font-weight:600">—</span></div>
             </div>
             <div class="hero-stat">
-              <span class="label">Monthly cost of waiting <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+              <span class="label">Cost of waiting <span style="font-size:11px;background:#fff5f0;color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Y1</span>
                 <span class="tip" data-tip="Year 1 value ÷ 12. Every month of delay costs this much in foregone value.">?</span>
               </span>
               <div class="value" id="out_wait">$0</div>
@@ -1271,9 +1271,9 @@
             <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px;flex-wrap:wrap">
               <span class="hero-featured-sub">Conservative Year 1 estimate — accounts for onboarding &amp; change management ramp</span>
             </div>
-            <div style="margin-top:10px;padding:8px 20px;background:var(--green-tint);border-radius:8px;display:inline-flex;align-items:center;gap:10px;font-size:14px">
-              <span style="color:var(--mid-grey-2)">Fully ramped (Year 2+):</span>
-              <span id="out_roi_ramped" style="font-size:20px;font-weight:700;color:var(--green-deep)">—</span>
+            <div style="margin-top:14px;padding:12px 28px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:10px;display:inline-flex;align-items:center;gap:14px">
+              <span style="color:rgba(255,255,255,.7);font-size:14px;font-weight:500;letter-spacing:.02em">Fully ramped (Year 2+)</span>
+              <span id="out_roi_ramped" style="font-size:36px;font-weight:300;color:#fff;letter-spacing:-1px;line-height:1">—</span>
             </div>
           </div>
         </div>
@@ -1354,27 +1354,48 @@
     <div class="pp-subtitle" id="pp1-subtitle">Projected first-year return on Cognota</div>
 
     <div class="pp-roi-hero">
-      <div class="pp-roi-label">One-Year Return on Investment</div>
-      <div class="pp-roi-number" id="pp1-roi"></div>
-      <div class="pp-roi-sub">Projected return in the first 12 months with Cognota</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:32px">
+        <!-- Year 1 -->
+        <div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding-right:32px">
+          <div class="pp-roi-label" style="display:flex;align-items:center;justify-content:center;gap:8px">
+            Year 1 Return on Investment
+            <span style="font-size:10px;background:#e46136;color:#fff;border-radius:3px;padding:1px 5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Conservative</span>
+          </div>
+          <div class="pp-roi-number" id="pp1-roi"></div>
+          <div class="pp-roi-sub">Discounted <span id="pp1-util-pct"></span> for onboarding &amp; change management ramp</div>
+        </div>
+        <!-- Fully ramped -->
+        <div style="flex:1;text-align:center;padding-left:0">
+          <div class="pp-roi-label" style="display:flex;align-items:center;justify-content:center;gap:8px">
+            Fully Ramped (Year 2+)
+            <span style="font-size:10px;background:#3d7a6e;color:#fff;border-radius:3px;padding:1px 5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Steady State</span>
+          </div>
+          <div class="pp-roi-number" id="pp1-roi-ramped" style="font-size:64px"></div>
+          <div class="pp-roi-sub">Once Cognota is fully embedded &amp; adopted</div>
+        </div>
+      </div>
     </div>
 
     <div class="pp-stats">
       <div class="pp-stat">
         <div class="pp-stat-value" id="pp1-value"></div>
-        <div class="pp-stat-label">Annual Value Created</div>
+        <div class="pp-stat-label">Value Created <span style="font-size:9px;background:#fff0ec;color:#c04a1e;border-radius:3px;padding:1px 4px;font-weight:700">Y1</span></div>
+        <div style="font-size:11px;color:#9a9590;margin-top:3px">Ramped: <span id="pp1-value-ramped" style="font-weight:600;color:#5a5550"></span></div>
       </div>
       <div class="pp-stat">
         <div class="pp-stat-value" id="pp1-payback"></div>
-        <div class="pp-stat-label">Months to Payback</div>
+        <div class="pp-stat-label">Months to Payback <span style="font-size:9px;background:#fff0ec;color:#c04a1e;border-radius:3px;padding:1px 4px;font-weight:700">Y1</span></div>
+        <div style="font-size:11px;color:#9a9590;margin-top:3px">Ramped: <span id="pp1-payback-ramped" style="font-weight:600;color:#5a5550"></span></div>
       </div>
       <div class="pp-stat">
         <div class="pp-stat-value" id="pp1-fte"></div>
         <div class="pp-stat-label">Added FTE Capacity</div>
+        <div style="font-size:11px;color:#9a9590;margin-top:3px">Unchanged by ramp rate</div>
       </div>
       <div class="pp-stat">
         <div class="pp-stat-value" id="pp1-wait"></div>
-        <div class="pp-stat-label">Monthly Cost of Waiting</div>
+        <div class="pp-stat-label">Cost of Waiting / mo <span style="font-size:9px;background:#fff0ec;color:#c04a1e;border-radius:3px;padding:1px 4px;font-weight:700">Y1</span></div>
+        <div style="font-size:11px;color:#9a9590;margin-top:3px">Ramped: <span id="pp1-wait-ramped" style="font-weight:600;color:#5a5550"></span></div>
       </div>
     </div>
 
@@ -1894,22 +1915,26 @@ window.addEventListener('beforeprint', function(){
     document.getElementById('pp1-date').textContent = dateStr;
     if(prospect) document.getElementById('pp1-subtitle').textContent =
       'First-year return on Cognota for ' + prospect;
-    var utilPct = numVal('utilizationPct') || 75;
-    document.getElementById('pp1-roi').textContent       = val('out_roi');
-    document.getElementById('pp1-value').textContent     = val('out_valueTotal');
-    document.getElementById('pp1-payback').textContent   = val('out_payback');
-    document.getElementById('pp1-fte').textContent       = val('out_fte');
-    document.getElementById('pp1-wait').textContent      = val('out_wait') + '/mo';
-    document.getElementById('pp1-investment').textContent = val('out_investment') + '/yr';
-    // Ramped note
-    var rampedRoi = ($('out_roi_ramped')||{}).textContent || '';
+    var utilPct   = numVal('utilizationPct') || 75;
+    var rampedRoi = ($('out_roi_ramped')||{}).textContent        || '';
     var rampedVal = ($('out_valueTotal_ramped')||{}).textContent || '';
-    document.getElementById('pp1-term-note').innerHTML  =
-      (is3yr ? '3-Year term — Standard pricing' : '1-Year term — +30% vs standard') +
-      '<br><br>' +
-      '<strong style="color:#b1d9d1">Fully ramped (Year 2+):</strong><br>' +
-      rampedRoi + ' ROI · ' + rampedVal + ' value' +
-      '<br><span style="opacity:.65;font-size:11px">Year 1 discounted to ' + utilPct + '% utilization<br>to account for onboarding &amp; change management</span>';
+    var rampedPay = ($('out_payback_ramped')||{}).textContent    || '';
+    var rampedWait= ($('out_wait_ramped')||{}).textContent       || '';
+
+    document.getElementById('pp1-roi').textContent          = val('out_roi');
+    document.getElementById('pp1-roi-ramped').textContent   = rampedRoi;
+    document.getElementById('pp1-util-pct').textContent     = (100 - utilPct) + '%';
+    document.getElementById('pp1-value').textContent        = val('out_valueTotal');
+    document.getElementById('pp1-value-ramped').textContent = rampedVal;
+    document.getElementById('pp1-payback').textContent      = val('out_payback') + ' mo';
+    document.getElementById('pp1-payback-ramped').textContent = rampedPay;
+    document.getElementById('pp1-fte').textContent          = val('out_fte');
+    document.getElementById('pp1-wait').textContent         = val('out_wait') + '/mo';
+    document.getElementById('pp1-wait-ramped').textContent  = rampedWait + '/mo';
+    document.getElementById('pp1-investment').textContent   = val('out_investment') + '/yr';
+    document.getElementById('pp1-term-note').innerHTML      =
+      (is3yr ? '3-Year term<br>Standard pricing' : '1-Year term<br>+30% flexibility premium') +
+      '<br><br><span style="opacity:.7;font-size:11px">Year 1 value discounted to '+utilPct+'% utilization<br>to account for onboarding &amp; change management ramp</span>';
     document.getElementById('pp1-term-note').innerHTML  =
       (is3yr
         ? '3-Year term<br>Standard pricing'
