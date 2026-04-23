@@ -683,16 +683,15 @@
   @page { margin: 0.65in 0.75in; size: letter; }
 
   @media print {
-    /* Hide entire interactive UI */
-    .app { display: none !important; }
+    /* Hide interactive elements */
+    .topbar, .top-row, .middle-row, .bottom-row,
+    details.assumptions, .disclaimer, .section-divider,
     #pain-panel, #pain-toggle { display: none !important; }
 
     /* Show proposal pages */
-    #pp1, #pp2, #pain-print-section {
-      display: block !important;
-    }
-    #pp2        { page-break-before: always; }
-    #pain-print-section { page-break-before: always; }
+    #pp1 { display: block !important; }
+    #pp2 { display: block !important; page-break-before: always; }
+    #pain-print-section { display: block !important; page-break-before: always; }
   }
 
   /* Print pages — hidden on screen */
