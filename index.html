@@ -1775,9 +1775,12 @@ function renderKanbanCard(d){
       '<span style="font-family:DM Mono,monospace;font-size:16px;font-weight:500;color:var(--accent2)">'+fmt$(d.amount)+'</span>'+
       '<span style="font-size:13px;color:var(--muted)">'+(d.oppAge!=null?d.oppAge+'d old':'')+'</span>'+
     '</div>'+
-    '<div style="margin-top:8px">'+
-      '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="width:100%;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">'+
-        '<span>💬</span><span>'+(hasLink?'Open strategy chat':'Link strategy chat')+'</span>'+
+    '<div style="display:flex;gap:5px;margin-top:8px">'+
+      '<button onclick="openDealStrategyById(\''+esc(d.id)+'\',event)" style="flex:1;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:13px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;">'+
+        '<span>💬</span><span>'+(hasLink?'Chat':'Link chat')+'</span>'+
+      '</button>'+
+      '<button onclick="openSprintAnalysis(\''+esc(d.id)+'\')" style="background:'+(getSprintMeta(d.id).analysis?'#7c2d12':'#fff5f0')+';border:1px solid '+(getSprintMeta(d.id).analysis?'#7c2d12':'#fca5a5')+';border-radius:6px;padding:5px 10px;font-size:13px;color:'+(getSprintMeta(d.id).analysis?'#fff':'#b91c1c')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px;" title="Sprint Selling Analysis">'+
+        '<span>⚡</span><span>Sprint</span>'+
       '</button>'+
     '</div>'+
   '</div>';
@@ -1785,6 +1788,7 @@ function renderKanbanCard(d){
 
 function renderPipelineList(deals){
   var body=document.getElementById('pl-body');if(!body)return;
+  _lastDeals=deals;deals.forEach(function(d){if(d.id)_dealsById[d.id]=d;});
   if(!deals.length){body.innerHTML='<div class="empty-dashed"><div class="empty-title">No deals match filters</div></div>';return;}
   var sorted=deals.slice().sort(function(a,b){
     var da=daysUntil(a.closeDate),db=daysUntil(b.closeDate);
@@ -1858,6 +1862,171 @@ function saveDealChatUrl(oppId){
   closeModal();
   renderKanban(_lastDeals);
   window.open(url.trim(),'_blank');
+}
+
+// ── SPRINT SELLING ANALYSIS ───────────────────────────────────────────────────
+
+var SPRINT_PROMPT=`# Role
+You are an elite enterprise sales strategist specializing in SPRINT Selling methodology and complex B2B deal execution. You coach Lee Fridman, an Account Executive at Cognota — a LearnOps platform for enterprise L&D teams. Beth (CRO) champions SPRINT Selling as the company methodology. Be direct, commercially sharp, no fluff. Flag anything uncertain with [UNCONFIRMED].
+
+# SPRINT Selling — Opportunity Vitals
+
+Five vitals work interdependently to increase probability of winning:
+
+**PAIN (P)** — A critical business issue or missed opportunity. "No pain, no change. Diagnose before you prescribe."
+Scoring 0–6: 0=No identification | 1=Customer admitted need | 2=Sponsor confirms documented pain & reasons | 3=Pain discussion started with Power | 4=Impact of pain across org explored with Power | 5=Power admitted time-based compelling reason to act | 6=Power confirmed pain link to business strategy
+
+**POWER (P)** — Person(s) with influence/authority to determine the outcome. "Find Power and access Power."
+Scoring 0–6: 0=Power not known | 1=Potential key players identified by Sponsor | 2=Power identified by Sponsor | 3=Access to Power documented and agreed | 4=Power structure & roles confirmed with Power | 5=Evaluation and decision process shared by Power | 6=Power approved contract signature
+
+**VISION (V)** — How the customer sees themselves using a solution. "Power must collaborate on and own a differentiated buying vision."
+Scoring 0–6: 0=No vision | 1=Potential differentiators identified | 2=Documented vision confirmed with Sponsor | 3=Vision discussion started with Power | 4=Implementation feasibility agreed by all Power | 5=Proof of vision approved by Power | 6=Proof of implementation approved by all Power
+
+**VALUE (V)** — Economic and intangible benefits explored, positioned, delivered. "Value persuasion is a process — set up, collaborated on, quantified, and measured."
+Scoring 0–6: 0=No value established | 1=Documented value confirmed with Sponsor | 2=Quantified value discussion started with Power | 3=Value linked to business strategy | 4=Buying process confirmed with Procurement | 5=Success criteria agreed with Power | 6=Business case jointly developed
+
+**CONSENSUS (C)** — Establishing broad agreement while mutually progressing. "Buyers need help buying. Co-create a collaboration plan."
+Scoring 0–6: 0=No collaboration plan | 1=Co-created plan confirmed with Power | 2=Consensus for documented pain from all Power | 3=Consensus for documented vision from all Power | 4=Mutual agreement at first collaboration plan checkpoint | 5=Consensus for business case from all Power | 6=Consensus for proposal content from all Power
+
+# Selling Sprints
+- **Pain Sprint**: Diagnose Pain — understand current state, direct vision of future state
+- **Power Sprint**: Find Power (decision process, stakeholders, competition, timeline, budget) + Access Power (ask for access, ask for insight, build confidence)
+- **Vision Sprint**: Align on Vision — playback conclusions, get feedback & diagnose, summarize & align
+- **Value Sprint**: Recommend — recap & headline, position detail, summarize & check
+- **Consensus Sprint**: Co-create Plan (position process, brainstorm, set next steps) + Manage Plan (anchor meetings, keep Power engaged)
+
+# 6 Agile Selling Skills to assess: Presence, Relating, Questioning, Listening, Positioning, Checking
+
+# Pain Exercise Questions
+- What is broken, inefficient, or risky TODAY?
+- Who feels this pain the most?
+- What happens if nothing changes?
+
+# Output Format — produce exactly these 7 sections:
+
+## 1. Executive Summary
+3–5 sentences: where deal stands, current stage, critical next move.
+
+## 2. SPRINT Vitals Scorecard
+For each vital: score X/6, evidence from transcript, gaps/unconfirmed, recommended next sprint action. Show overall deal health.
+
+## 3. Paint the Pain
+Customer pain in their own language. Specific — business impact, operational friction, emotional weight. Sharp enough they'd say "yes, exactly."
+
+## 4. Power Map
+Every named stakeholder: role, agenda, classification (Champion / Economic Buyer / Influencer / Blocker / Unknown). Flag who is missing and needs to be brought in.
+
+## 5. Vision & Value
+Winning future state for this customer. Connect their specific pain directly to Cognota's solution. Quantify where possible.
+
+## 6. Consensus & Deal Strategy
+How to build/expand internal consensus. Key risks, objections to get ahead of, how to advance across the buying group.
+
+## 7. POV for Re-Engagement
+First-person, ready to use in an email, call opener, or exec meeting. Connect pain to Cognota value, frame cost of inaction, position as trusted advisor not vendor.`;
+
+function getSprintMeta(oppId){
+  try{return JSON.parse(localStorage.getItem('pipeline_sprint_'+oppId)||'{}');}catch(e){return{};}
+}
+function saveSprintMeta(oppId,meta){
+  try{localStorage.setItem('pipeline_sprint_'+oppId,JSON.stringify(meta));}catch(e){}
+}
+
+function openSprintAnalysis(oppId){
+  var d=_dealsById[oppId];
+  var meta=getSprintMeta(oppId);
+
+  function renderAnalysisHtml(text){
+    // Convert markdown sections to styled HTML
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/^## (.+)$/gm,'<h3 style="font-size:16px;font-weight:700;color:var(--accent2);margin:1.25rem 0 .5rem;padding-bottom:.3rem;border-bottom:2px solid var(--light)">$1</h3>')
+      .replace(/^\*\*(.+?)\*\*$/gm,'<div style="font-size:14px;font-weight:700;color:var(--text);margin:.6rem 0 .2rem">$1</div>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\[UNCONFIRMED\]/g,'<span style="background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #fcd34d">UNCONFIRMED</span>')
+      .replace(/^- (.+)$/gm,'<div style="display:flex;gap:8px;margin-bottom:4px;font-size:14px;line-height:1.6"><span style="color:var(--accent);flex-shrink:0;margin-top:2px">›</span><span>$1</span></div>')
+      .replace(/\n\n/g,'</p><p style="margin:4px 0;font-size:15px;line-height:1.7;color:var(--text)">')
+      .replace(/\n/g,'<br>');
+  }
+
+  var hasAnalysis=!!(meta.analysis);
+  var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+
+  var html=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
+      '<div>'+
+        '<div style="font-size:18px;font-weight:600">⚡ Sprint Selling Analysis</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(d?esc(d.account)+' · '+esc(d.name):'Deal'+(savedDate?' · Last run '+savedDate:''))+'</div>'+
+      '</div>'+
+      (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px;flex-shrink:0">↺ Re-run</button>':'')+
+    '</div>'+
+
+    // Input panel (shown when no analysis or re-running)
+    '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'block')+'">'+
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste one or more Gong call transcripts below. You can paste multiple — just separate them with a line like <code style="background:var(--bg);padding:1px 4px;border-radius:3px">--- CALL 2 ---</code></div>'+
+      '<textarea id="sprint-transcript" rows="12" placeholder="Paste Gong transcript(s) here..." style="width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text);margin-bottom:.75rem"></textarea>'+
+      '<button onclick="runSprintAnalysis(\''+oppId+'\')" class="btn" style="width:100%;padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px">'+
+        '<span>⚡</span><span>Run Sprint Analysis</span>'+
+      '</button>'+
+    '</div>'+
+
+    // Results panel
+    '<div id="sprint-results-panel" style="display:'+(hasAnalysis?'block':'none')+'">'+
+      (hasAnalysis?'<div style="line-height:1.7"><p style="margin:0;font-size:15px;color:var(--text)">'+renderAnalysisHtml(meta.analysis)+'</p></div>':'')+
+    '</div>'+
+
+    '<div class="modal-footer" style="justify-content:flex-end">'+
+      '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
+    '</div>';
+
+  modal(html);
+  document.getElementById('modal-box').style.maxWidth='820px';
+  document.getElementById('modal-box').style.maxHeight='88vh';
+  document.getElementById('modal-box').style.overflow='hidden';
+  document.getElementById('modal-box').style.display='flex';
+  document.getElementById('modal-box').style.flexDirection='column';
+  // Make results scrollable
+  var results=document.getElementById('sprint-results-panel');
+  if(results)results.style.cssText+='overflow-y:auto;flex:1;padding-right:4px;';
+}
+
+function showSprintInput(oppId){
+  var input=document.getElementById('sprint-input-panel');
+  var results=document.getElementById('sprint-results-panel');
+  if(input)input.style.display='block';
+  if(results)results.style.display='none';
+}
+
+function runSprintAnalysis(oppId){
+  var transcript=(document.getElementById('sprint-transcript')||{}).value||'';
+  if(!transcript.trim()){showToast('Paste a transcript first');return;}
+
+  var d=_dealsById[oppId];
+  var dealContext=d?'\n\nDEAL CONTEXT:\n- Account: '+d.account+'\n- Opportunity: '+d.name+'\n- Stage: '+(d.stage||'Unknown')+'\n- Amount: '+fmt$(d.amount)+(d.nextStep?'\n- Next step: '+d.nextStep:''):'';
+
+  var btn=document.querySelector('#sprint-input-panel .btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span>⚡</span><span>Analyzing...</span>';}
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:4000,stream:false,
+    system:SPRINT_PROMPT,
+    messages:[{role:'user',content:'Please analyze the following Gong call transcript(s) and produce the full SPRINT Selling deal intelligence brief.'+dealContext+'\n\n---\n\n'+transcript}]
+  })}).then(function(r){return r.json();}).then(function(res){
+    var text=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
+    if(!text){showToast('No response — try again');if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}return;}
+
+    // Save
+    saveSprintMeta(oppId,{analysis:text,savedAt:new Date().toISOString()});
+
+    // Re-open to show results
+    closeModal();
+    openSprintAnalysis(oppId);
+    // Refresh kanban so ⚡ button turns dark
+    if(_lastDeals.length)renderKanban(_lastDeals);
+  }).catch(function(e){
+    showToast('Error: '+e.message);
+    if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}
+  });
 }
 
 function _unusedDealChat(d,evt){
