@@ -2870,6 +2870,14 @@ function openAccountDrawer(id){
         ? '<div id="ad-sf-history">'+spin()+'</div>'
         : '<div style="font-size:15px;color:var(--muted)">Connect Salesforce to see opportunity history and contacts.</div>')+
     '</div>'+
+    '<div class="acct-section">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem">'+
+        '<div class="acct-section-label" style="margin-bottom:0">Claude Project (mobile chat)</div>'+
+        (acct.claudeProjectUrl?'<a href="'+esc(acct.claudeProjectUrl)+'" target="_blank" style="font-size:13px;color:var(--accent);text-decoration:none;font-weight:500">Open on mobile ↗</a>':'')+
+      '</div>'+
+      '<input id="ad-claude-url" type="url" value="'+esc(acct.claudeProjectUrl||'')+'" placeholder="Paste Claude project URL (claude.ai/project/...)" style="width:100%;padding:6px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">'+
+      '<div style="font-size:13px;color:var(--muted);margin-top:3px">Paste the URL of your Claude.ai project for this deal — opens in the Claude mobile app when you\'re on the go.</div>'+
+    '</div>'+
     '<div class="acct-section"><div class="acct-section-label">SF Account ID (optional)</div>'+
       '<input id="ad-sfid" type="text" value="'+esc(acct.sfAccountId||'')+'" placeholder="0015x... (links for precise matching)" style="width:100%;padding:6px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">'+
       '<div style="font-size:13px;color:var(--muted);margin-top:3px">Without an ID we match by account name — works for most cases.</div>'+
@@ -2880,6 +2888,7 @@ function openAccountDrawer(id){
   ftr.innerHTML=
     '<button class="btn" onclick="saveAccountDrawer(\''+id+'\')">Save changes</button>'+
     '<button class="btn-ghost" onclick="openStrategyChat(\''+id+'\')" style="display:flex;align-items:center;gap:6px">💬 Strategy'+(acct.strategyChat&&acct.strategyChat.length?' <span style="background:var(--accent);color:#fff;border-radius:10px;padding:0 6px;font-size:13px">'+acct.strategyChat.filter(function(m){return m.role==='assistant';}).length+'</span>':'')+'</button>'+
+    (acct.claudeProjectUrl?'<a href="'+esc(acct.claudeProjectUrl)+'" target="_blank" class="btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px" title="Open Claude project for this deal">📱 Mobile chat</a>':'')+
     '<button class="btn-ghost" onclick="closeAccountDrawer()">Close</button>';
 
   document.getElementById('acct-drawer').classList.add('open');
@@ -2960,6 +2969,8 @@ function saveAccountDrawer(id){
   acct.notes=(document.getElementById('ad-notes')||{}).value||acct.notes;
   var sfIdEl=document.getElementById('ad-sfid');
   if(sfIdEl)acct.sfAccountId=sfIdEl.value.trim();
+  var claudeUrlEl=document.getElementById('ad-claude-url');
+  if(claudeUrlEl)acct.claudeProjectUrl=claudeUrlEl.value.trim();
   saveObAccount(acct);
   renderObTable();
   showToast('Saved');
