@@ -1734,7 +1734,9 @@ function renderPipeline(deals){
   else{renderPipelineList(deals);}
 }
 
+var _lastDeals=[];
 function renderKanban(deals){
+  _lastDeals=deals;
   var body=document.getElementById('pl-body');if(!body)return;
   var cols={};
   SF_STAGES.forEach(function(s){cols[s]=[];});
@@ -1762,6 +1764,8 @@ function renderKanban(deals){
 function renderKanbanCard(d){
   var diff=daysUntil(d.closeDate);
   var dealMeta=getDealMeta(d.id);
+  var hasChat=dealMeta.chat&&dealMeta.chat.length>0;
+  var chatCount=hasChat?dealMeta.chat.filter(function(m){return m.role==='assistant';}).length:0;
   return'<div class="kanban-card">'+
     '<div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.3">'+esc(d.name)+'</div>'+
     '<div style="font-size:14px;color:var(--muted);margin-bottom:5px">'+esc(d.account)+'</div>'+
@@ -1771,7 +1775,7 @@ function renderKanbanCard(d){
     '</div>'+
     '<div style="display:flex;gap:6px;margin-top:8px">'+
       '<button onclick="dealInsight('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="flex:1;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif">✦ What should I do next?</button>'+
-      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="background:'+(dealMeta.claudeUrl?'var(--accent)':'var(--bg)')+';border:1px solid '+(dealMeta.claudeUrl?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 8px;font-size:14px;color:'+(dealMeta.claudeUrl?'#fff':'var(--muted)')+';cursor:pointer;" title="Strategy chat / Claude project">💬</button>'+
+      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="position:relative;background:'+(hasChat?'var(--accent)':'var(--bg)')+';border:1px solid '+(hasChat?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 8px;font-size:14px;color:'+(hasChat?'#fff':'var(--muted)')+';cursor:pointer;" title="Strategy chat">💬'+(chatCount?'<span style="position:absolute;top:-5px;right:-5px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;font-size:11px;font-weight:700;padding:0 4px;line-height:1.6">'+chatCount+'</span>':'')+'</button>'+
     '</div>'+
   '</div>';
 }
@@ -1818,63 +1822,132 @@ function saveDealMeta(oppId,meta){
 function openDealStrategy(d,evt){
   if(evt)evt.stopPropagation();
   var meta=getDealMeta(d.id);
+  meta.chat=meta.chat||[];
+
+  var dealId=d.id;
+  var chatId='dc-'+dealId;
+
+  function bubbles(){
+    if(!meta.chat.length)return'<div style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:15px">No messages yet — ask anything about this deal.</div>';
+    return meta.chat.map(function(m,i){
+      var isUser=m.role==='user';
+      var md=isUser?esc(m.content):m.content
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*([^*\n]+?)\*/g,'<em>$1</em>')
+        .replace(/\n\n/g,'</p><p style="margin:4px 0">')
+        .replace(/\n/g,'<br>');
+      return'<div style="display:flex;flex-direction:'+(isUser?'row-reverse':'row')+';gap:8px;margin-bottom:12px;align-items:flex-start">'+
+        '<div style="width:28px;height:28px;border-radius:50%;background:'+(isUser?'var(--accent2)':'var(--bg)')+';border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">'+(isUser?'L':'✦')+'</div>'+
+        '<div style="max-width:80%;background:'+(isUser?'var(--accent2)':'var(--bg)')+';color:'+(isUser?'#fff':'var(--text)')+';border:1px solid '+(isUser?'transparent':'var(--border)')+';border-radius:12px;padding:.6rem .9rem;font-size:15px;line-height:1.6"><p style="margin:0">'+md+'</p></div>'+
+      '</div>';
+    }).join('');
+  }
 
   var html=
-    '<div class="modal-title" style="display:flex;align-items:center;gap:10px">'+
-      '<span>💬</span>'+
-      '<div style="min-width:0">'+
-        '<div style="font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+'</div>'+
-        '<div style="font-size:14px;color:var(--muted);font-weight:400">'+esc(d.account)+' · '+fmt$(d.amount)+(d.stage?' · '+esc(d.stage):'')+'</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'+
+      '<div>'+
+        '<div style="font-size:17px;font-weight:600">💬 '+esc(d.account)+'</div>'+
+        '<div style="font-size:13px;color:var(--muted)">'+esc(d.name)+' · '+fmt$(d.amount)+(d.stage?' · '+esc(d.stage):'')+'</div>'+
       '</div>'+
+      '<button onclick="clearDealChat(\''+dealId+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);font-family:DM Sans,sans-serif">Clear chat</button>'+
     '</div>'+
-
-    // Claude project URL
-    '<div style="padding:.85rem 1rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:1rem">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'+
-        '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Claude Project</div>'+
-        (meta.claudeUrl?'<a href="'+esc(meta.claudeUrl)+'" target="_blank" style="font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px">Open ↗</a>':'')+
-      '</div>'+
-      '<input id="ds-claude-url" type="url" value="'+esc(meta.claudeUrl||'')+'" placeholder="Paste your claude.ai/project/... URL for this deal" style="width:100%;padding:6px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--card)">'+
-      '<div style="font-size:12px;color:var(--muted);margin-top:4px">Paste once — opens in the Claude mobile app when you\'re on the go.</div>'+
+    '<div id="'+chatId+'-msgs" style="min-height:160px;max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:.75rem;background:var(--card)">'+
+      bubbles()+
     '</div>'+
-
-    // Strategy notes
-    '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Deal notes</div>'+
-    '<textarea id="ds-notes" rows="8" placeholder="Strategy notes, objections, stakeholder map, open questions, next steps..." style="width:100%;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text)">'+esc(meta.notes||'')+'</textarea>'+
-
-    '<div class="modal-footer" style="justify-content:space-between">'+
-      '<div style="font-size:13px;color:var(--muted)">'+
-        (meta.savedAt?'Last saved '+new Date(meta.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Not yet saved')+
-      '</div>'+
-      '<div style="display:flex;gap:8px">'+
-        '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
-        '<button class="btn" onclick="saveDealStrategyModal(\''+esc(d.id)+'\')">Save</button>'+
-      '</div>'+
+    '<div style="display:flex;gap:8px;align-items:flex-end">'+
+      '<textarea id="'+chatId+'-input" placeholder="\'What\'s my best path to getting a champion here?\' or \'They\'re evaluating two other vendors — how do I differentiate?\'" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;resize:none;min-height:60px;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendDealChat(\''+dealId+'\','+JSON.stringify(d).replace(/"/g,"'")+');event.preventDefault();}"></textarea>'+
+      '<button onclick="sendDealChat(\''+dealId+'\','+JSON.stringify(d).replace(/"/g,"'")+',event)" class="btn" style="padding:10px 16px;align-self:flex-end">Send<br><span style="font-size:12px;opacity:.7">⌘↵</span></button>'+
+    '</div>'+
+    '<div class="modal-footer" style="justify-content:flex-end;margin-top:.5rem">'+
+      '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
     '</div>';
 
   modal(html);
-  document.getElementById('modal-box').style.maxWidth='600px';
+  document.getElementById('modal-box').style.maxWidth='700px';
+  // Scroll to bottom of chat
+  setTimeout(function(){
+    var el=document.getElementById(chatId+'-msgs');
+    if(el)el.scrollTop=el.scrollHeight;
+  },50);
 }
 
-function saveDealStrategyModal(oppId){
-  var claudeUrl=(document.getElementById('ds-claude-url')||{}).value||'';
-  var notes=(document.getElementById('ds-notes')||{}).value||'';
-  saveDealMeta(oppId,{claudeUrl:claudeUrl.trim(),notes:notes,savedAt:new Date().toISOString()});
-  showToast('Deal notes saved');
-  closeModal();
-  // Re-render kanban so the 💬 button updates its color
-  var body=document.getElementById('pl-body');
-  if(body&&pipelineView==='kanban'){
-    var cards=body.querySelectorAll('.kanban-card');
-    cards.forEach(function(card){
-      var btn=card.querySelector('button[title="Strategy chat / Claude project"]');
-      if(btn&&btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes(oppId)){
-        btn.style.background=claudeUrl?'var(--accent)':'var(--bg)';
-        btn.style.borderColor=claudeUrl?'var(--accent)':'var(--border)';
-        btn.style.color=claudeUrl?'#fff':'var(--muted)';
-      }
-    });
+function sendDealChat(dealId,d,evt){
+  if(evt)evt.stopPropagation();
+  var chatId='dc-'+dealId;
+  var input=document.getElementById(chatId+'-input');
+  if(!input)return;
+  var userMsg=input.value.trim();
+  if(!userMsg)return;
+  input.value='';
+
+  var meta=getDealMeta(dealId);
+  meta.chat=meta.chat||[];
+  meta.chat.push({role:'user',content:userMsg});
+  saveDealMeta(dealId,meta);
+
+  var thread=document.getElementById(chatId+'-msgs');
+  if(thread){
+    var ub=document.createElement('div');
+    ub.style.cssText='display:flex;flex-direction:row-reverse;gap:8px;margin-bottom:12px;align-items:flex-start';
+    ub.innerHTML='<div style="width:28px;height:28px;border-radius:50%;background:var(--accent2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">L</div><div style="max-width:80%;background:var(--accent2);color:#fff;border-radius:12px;padding:.6rem .9rem;font-size:15px;line-height:1.6">'+esc(userMsg)+'</div>';
+    thread.appendChild(ub);
+    var thinking=document.createElement('div');
+    thinking.id=chatId+'-thinking';
+    thinking.style.cssText='display:flex;gap:8px;margin-bottom:12px;align-items:flex-start';
+    thinking.innerHTML='<div style="width:28px;height:28px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">✦</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.6rem .9rem;font-size:15px;color:var(--muted)">Thinking…</div>';
+    thread.appendChild(thinking);
+    thread.scrollTop=thread.scrollHeight;
   }
+
+  var system='You are a strategic sales advisor helping Lee Fridman, an AE at Cognota, win a deal.\n\n'+
+    'Deal context:\n'+
+    '- Opportunity: '+d.name+'\n'+
+    '- Account: '+d.account+'\n'+
+    '- Stage: '+(d.stage||'Unknown')+'\n'+
+    '- Amount: '+fmt$(d.amount)+'\n'+
+    (d.nextStep?'- Next step in SF: '+d.nextStep+'\n':'')+
+    (d.oppAge?'- Days in pipeline: '+d.oppAge+'\n':'')+
+    '\nCognota is a LearnOps platform for L&D teams. Be specific, opinionated, and concise. Lee needs tactical advice he can act on today.';
+
+  var messages=meta.chat.map(function(m){return{role:m.role,content:m.content};});
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:1000,stream:false,
+    system:system,messages:messages
+  })}).then(function(r){return r.json();}).then(function(res){
+    var reply=((res.content&&res.content[0]&&res.content[0].text)||'').trim()||'Sorry, try again.';
+    var thinkEl=document.getElementById(chatId+'-thinking');
+    if(thinkEl)thinkEl.remove();
+    meta=getDealMeta(dealId);
+    meta.chat=meta.chat||[];
+    meta.chat.push({role:'assistant',content:reply});
+    saveDealMeta(dealId,meta);
+    if(thread){
+      var ab=document.createElement('div');
+      ab.style.cssText='display:flex;gap:8px;margin-bottom:12px;align-items:flex-start';
+      var md=reply.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+?)\*/g,'<em>$1</em>')
+        .replace(/\n\n/g,'</p><p style="margin:4px 0">').replace(/\n/g,'<br>');
+      ab.innerHTML='<div style="width:28px;height:28px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">✦</div><div style="max-width:80%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:.6rem .9rem;font-size:15px;line-height:1.6"><p style="margin:0">'+md+'</p></div>';
+      thread.appendChild(ab);
+      thread.scrollTop=thread.scrollHeight;
+    }
+    // Update 💬 button to green now that there's a chat
+    renderKanban&&renderKanban(_lastDeals||[]);
+  }).catch(function(){
+    var thinkEl=document.getElementById(chatId+'-thinking');
+    if(thinkEl)thinkEl.remove();
+    showToast('Could not reach Claude — try again');
+  });
+}
+
+function clearDealChat(dealId){
+  var meta=getDealMeta(dealId);
+  meta.chat=[];
+  saveDealMeta(dealId,meta);
+  showToast('Chat cleared');
+  closeModal();
 }
 
 function dealInsight(deal,evt){
