@@ -2038,18 +2038,21 @@ window.addEventListener('beforeprint', function(){
 
 // ── POWERPOINT EXPORT ──────────────────────────────────────────
 async function generatePPTX() {
-  // Lazy-load PptxGenJS from CDN
-  if (!window.PptxGenJS) {
-    const btn = document.querySelector('[onclick="generatePPTX()"]');
-    if(btn){ const orig=btn.textContent; btn.textContent='Loading…'; btn.disabled=true;
+  const btn = document.querySelector('[onclick="generatePPTX()"]');
+  const origText = btn ? btn.textContent : '';
+  try {
+    // Lazy-load PptxGenJS from CDN
+    if (typeof PptxGenJS === 'undefined') {
+      if(btn){ btn.textContent='Loading…'; btn.disabled=true; }
       await new Promise((res,rej)=>{
         const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundled.js';
+        s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
         s.onload=res; s.onerror=rej; document.head.appendChild(s);
       });
-      btn.textContent=orig; btn.disabled=false;
+      if(btn){ btn.textContent='Building…'; }
+    } else {
+      if(btn){ btn.textContent='Building…'; btn.disabled=true; }
     }
-  }
 
   // ── Read values ──────────────────────────────────────────────
   const v  = id => (document.getElementById(id)||{}).textContent||'';
@@ -2251,7 +2254,13 @@ async function generatePPTX() {
 
   // ── Save ─────────────────────────────────────────────────────
   const filename = 'Cognota ROI'+(prospect?' — '+prospect:'')+'.pptx';
-  await pptx.writeFile({ fileName: filename });
+    await pptx.writeFile({ fileName: filename });
+    if(btn){ btn.textContent=origText; btn.disabled=false; }
+  } catch(err) {
+    console.error('PPTX error:', err);
+    alert('Could not generate slides: ' + err.message + '\n\nCheck your internet connection and try again.');
+    if(btn){ btn.textContent=origText; btn.disabled=false; }
+  }
 }
 </script>
 </body>
