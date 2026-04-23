@@ -2078,6 +2078,76 @@ function copySprintAnalysis(oppId){
   }).catch(function(){showToast('Copy failed — select text manually');});
 }
 
+function openSprintInBrowser(oppId){
+  var meta=getSprintMeta(oppId);
+  if(!meta.analysis){showToast('No analysis to open');return;}
+  var d=_dealsById[oppId];
+  var health=extractDealHealth(meta.analysis);
+  var savedDate=meta.savedAt?new Date(meta.savedAt).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
+
+  // Build all sections expanded (no accordion needed in full browser view)
+  function buildFullSections(rawText){
+    var parts=rawText.split(/(?=^## \d+\.)/m);
+    var html='';
+    parts.forEach(function(part){
+      part=part.trim();if(!part)return;
+      var m=part.match(/^## (\d+)\.\s*(.+)/);
+      if(!m){
+        var bodyOnly=part.replace(/^#{1,3}[^\n]*\n?/gm,'').trim();
+        if(bodyOnly)html+='<div class="preamble">'+sprintRenderBody(bodyOnly)+'</div>';
+        return;
+      }
+      var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
+      var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
+      html+=
+        '<div class="section">'+
+          '<div class="section-hdr"><span class="section-num">'+num+'</span><span>'+esc(title)+'</span></div>'+
+          '<div class="section-body">'+sprintRenderBody(body)+'</div>'+
+        '</div>';
+    });
+    return html;
+  }
+
+  var scorecardHtml=extractSprintScorecard(meta.analysis);
+  var sectionsHtml=buildFullSections(meta.analysis);
+
+  var page='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>⚡ Sprint Analysis — '+(d?esc(d.account):'Deal')+'</title><style>'+
+    '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;font-size:16px;line-height:1.7;color:#1a1714;background:#f5f2ee;padding:2rem 1.5rem 4rem;}'+
+    '.wrap{max-width:860px;margin:0 auto;}'+
+    '.page-hdr{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #e2ddd7;}'+
+    '.page-title{font-size:24px;font-weight:700;color:#1a1714;display:flex;align-items:center;gap:10px;margin-bottom:.25rem;}'+
+    '.page-meta{font-size:14px;color:#9a9590;}'+
+    '.health-badge{display:inline-block;font-size:14px;font-weight:700;padding:3px 12px;border-radius:6px;}'+
+    '.scorecard{margin-bottom:1.5rem;padding:1rem 1.25rem;background:#fff;border-radius:10px;border:1px solid #e2ddd7;border-left:3px solid #2d5e54;}'+
+    '.scorecard-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9a9590;margin-bottom:8px;}'+
+    '.section{background:#fff;border-radius:10px;border:1px solid #e2ddd7;overflow:hidden;margin-bottom:1rem;}'+
+    '.section-hdr{display:flex;align-items:center;gap:10px;padding:.85rem 1.25rem;background:#f5f2ee;border-bottom:1px solid #e2ddd7;}'+
+    '.section-num{width:26px;height:26px;border-radius:50%;background:#3d7a6e;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}'+
+    '.section-hdr span:last-child{font-size:16px;font-weight:700;color:#1a1714;}'+
+    '.section-body{padding:1.1rem 1.25rem;}'+
+    '.preamble{background:#fff;border-radius:10px;border:1px solid #e2ddd7;padding:1rem 1.25rem;margin-bottom:1rem;}'+
+    'table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0;}'+
+    'th{text-align:left;padding:8px 12px;background:#2d5e54;color:#fff;font-weight:600;border:1px solid #e2ddd7;}'+
+    'td{padding:8px 12px;border:1px solid #e2ddd7;vertical-align:top;line-height:1.5;}'+
+    'tr:nth-child(even) td{background:#f5f2ee;}'+
+    '.sprint-b{font-weight:700;}'+
+    '@media print{body{background:#fff;}'+
+    '.section,.preamble,.scorecard{break-inside:avoid;box-shadow:none;border:1px solid #ccc;}}'+
+  '</style></head><body><div class="wrap">'+
+    '<div class="page-hdr">'+
+      '<div class="page-title">⚡ Sprint Selling Analysis'+(health?'<span class="health-badge" style="background:'+health.bg+';color:'+health.fg+'">'+health.label+'</span>':'')+'</div>'+
+      '<div class="page-meta">'+(d?esc(d.account)+' · '+esc(d.name):'')+(savedDate?' · '+savedDate:'')+'</div>'+
+    '</div>'+
+    (scorecardHtml?'<div class="scorecard"><div class="scorecard-label">SPRINT Vitals Scorecard</div>'+scorecardHtml+'</div>':'')+
+    sectionsHtml+
+  '</div></body></html>';
+
+  var blob=new Blob([page],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  window.open(url,'_blank');
+}
+
 function openSprintAnalysis(oppId){
   var d=_dealsById[oppId];
   var meta=getSprintMeta(oppId);
@@ -2100,6 +2170,7 @@ function openSprintAnalysis(oppId){
       '</div>'+
       '<div style="display:flex;gap:6px;flex-shrink:0">'+
         (hasAnalysis?'<button onclick="copySprintAnalysis(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">📋 Copy all</button>':'') +
+        (hasAnalysis?'<button onclick="openSprintInBrowser(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↗ Open in browser</button>':'')+
         (hasAnalysis?'<button onclick="showAddCallPanel(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">➕ Add call</button>':'')+
       '</div>'+
     '</div>'+
