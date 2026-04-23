@@ -1764,8 +1764,7 @@ function renderKanban(deals){
 function renderKanbanCard(d){
   var diff=daysUntil(d.closeDate);
   var dealMeta=getDealMeta(d.id);
-  var hasChat=dealMeta.chat&&dealMeta.chat.length>0;
-  var chatCount=hasChat?dealMeta.chat.filter(function(m){return m.role==='assistant';}).length:0;
+  var hasLink=!!(dealMeta.claudeUrl);
   return'<div class="kanban-card">'+
     '<div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.3">'+esc(d.name)+'</div>'+
     '<div style="font-size:14px;color:var(--muted);margin-bottom:5px">'+esc(d.account)+'</div>'+
@@ -1774,8 +1773,8 @@ function renderKanbanCard(d){
       '<span style="font-size:13px;color:var(--muted)">'+(d.oppAge!=null?d.oppAge+'d old':'')+'</span>'+
     '</div>'+
     '<div style="margin-top:8px">'+
-      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="position:relative;width:100%;background:'+(hasChat?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasChat?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasChat?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;" title="Strategy chat">'+
-        '<span>💬</span><span>Strategy chat</span>'+(chatCount?'<span style="background:'+(hasChat?'rgba(255,255,255,.25)':'var(--accent)')+';color:#fff;border-radius:10px;font-size:12px;font-weight:700;padding:0 6px;line-height:1.6">'+chatCount+'</span>':'')+
+      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="width:100%;background:'+(hasLink?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasLink?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasLink?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">'+
+        '<span>💬</span><span>'+(hasLink?'Open strategy chat':'Link strategy chat')+'</span>'+
       '</button>'+
     '</div>'+
   '</div>';
@@ -1805,7 +1804,7 @@ function renderPipelineList(deals){
           '<div style="text-align:right;flex-shrink:0">'+
             '<div class="deal-amount">'+fmt$(d.amount)+'</div>'+
             (d.oppAge!=null?'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+d.oppAge+'d old</div>':'')+
-            '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="margin-top:8px;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px 10px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">💬 Strategy chat</button>'+
+            '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="margin-top:8px;background:'+(getDealMeta(d.id).claudeUrl?'var(--accent)':'#edf7f5')+';border:1px solid '+(getDealMeta(d.id).claudeUrl?'var(--accent)':'var(--light)')+';border-radius:6px;padding:4px 10px;font-size:14px;color:'+(getDealMeta(d.id).claudeUrl?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">💬 '+(getDealMeta(d.id).claudeUrl?'Open strategy chat':'Link strategy chat')+'</button>'+
           '</div>'+
         '</div>'+
         (d.gongSummary?'<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);font-size:14px;color:var(--muted)">🎙 Gong: '+esc(d.gongSummary)+'</div>':'')+
@@ -1821,6 +1820,38 @@ function saveDealMeta(oppId,meta){
 }
 
 function openDealStrategy(d,evt){
+  if(evt)evt.stopPropagation();
+  var meta=getDealMeta(d.id);
+  // If URL already saved, open it directly
+  if(meta.claudeUrl){window.open(meta.claudeUrl,'_blank');return;}
+  // Otherwise show the link modal
+  var html=
+    '<div class="modal-title">💬 Link strategy chat — '+esc(d.account)+'</div>'+
+    '<p style="font-size:15px;color:var(--muted);margin-bottom:1rem;line-height:1.6">'+
+      'Open your Claude.ai chat for this deal, copy the URL from the address bar, and paste it below. The button on this card will open it directly from now on — in any browser or the Claude mobile app.'+
+    '</p>'+
+    '<input id="ds-url-input" type="url" value="'+esc(meta.claudeUrl||'')+'" placeholder="https://claude.ai/chat/..." style="width:100%;padding:8px 10px;font-size:15px;border:1px solid var(--border);border-radius:8px;background:var(--bg);margin-bottom:1rem">'+
+    '<div class="modal-footer" style="justify-content:flex-end">'+
+      '<button class="btn-ghost" onclick="closeModal()">Cancel</button>'+
+      '<button class="btn" onclick="saveDealChatUrl(\''+d.id+'\')">Save & open</button>'+
+    '</div>';
+  modal(html);
+  document.getElementById('modal-box').style.maxWidth='520px';
+  setTimeout(function(){var el=document.getElementById('ds-url-input');if(el)el.focus();},100);
+}
+
+function saveDealChatUrl(oppId){
+  var url=(document.getElementById('ds-url-input')||{}).value||'';
+  if(!url.trim()){showToast('Paste a URL first');return;}
+  var meta=getDealMeta(oppId);
+  meta.claudeUrl=url.trim();
+  saveDealMeta(oppId,meta);
+  closeModal();
+  renderKanban(_lastDeals);
+  window.open(url.trim(),'_blank');
+}
+
+function _unusedDealChat(d,evt){
   if(evt)evt.stopPropagation();
   var meta=getDealMeta(d.id);
   meta.chat=meta.chat||[];
