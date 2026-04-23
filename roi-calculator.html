@@ -2097,6 +2097,10 @@ async function generatePPTX() {
   const OR  = 'E46136'; // orange
   const WH  = 'FFFFFF';
 
+  // Grab the embedded logo from the page
+  const logoEl = document.querySelector('.brand-mark img, .pp-brand img');
+  const logoSrc = logoEl ? logoEl.src : null;
+
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.title  = 'Cognota ROI Analysis' + (prospect?' — '+prospect:'');
@@ -2109,9 +2113,9 @@ async function generatePPTX() {
   // Full dark background
   s1.addShape(pptx.ShapeType.rect, { x:0, y:0, w:10, h:5.625, fill:{color:DK} });
 
-  // Brand mark circle
-  s1.addShape(pptx.ShapeType.ellipse, { x:0.35, y:0.2, w:0.45, h:0.45, fill:{color:MG}, line:{color:MG} });
-  s1.addText('C', { x:0.35, y:0.2, w:0.45, h:0.45, fontSize:16, bold:true, color:LT, align:'center', valign:'middle', margin:0 });
+  // Brand mark — logo
+  if(logoSrc){ s1.addImage({ data:logoSrc, x:0.3, y:0.13, w:0.45, h:0.45 }); }
+  else { s1.addShape(pptx.ShapeType.ellipse, { x:0.3, y:0.13, w:0.45, h:0.45, fill:{color:MG}, line:{color:MG} }); s1.addText('C', { x:0.3, y:0.13, w:0.45, h:0.45, fontSize:16, bold:true, color:LT, align:'center', valign:'middle', margin:0 }); }
 
   // Brand name
   s1.addText('Cognota', { x:0.87, y:0.22, w:2.5, h:0.22, fontSize:14, bold:true, color:WH, margin:0 });
@@ -2186,8 +2190,8 @@ async function generatePPTX() {
 
   // Header bar
   s2.addShape(pptx.ShapeType.rect, { x:0, y:0, w:10, h:0.7, fill:{color:DK} });
-  s2.addShape(pptx.ShapeType.ellipse, { x:0.35, y:0.13, w:0.42, h:0.42, fill:{color:MG}, line:{color:MG} });
-  s2.addText('C', { x:0.35, y:0.13, w:0.42, h:0.42, fontSize:15, bold:true, color:LT, align:'center', valign:'middle', margin:0 });
+  if(logoSrc){ s2.addImage({ data:logoSrc, x:0.3, y:0.13, w:0.42, h:0.42 }); }
+  else { s2.addShape(pptx.ShapeType.ellipse, { x:0.35, y:0.13, w:0.42, h:0.42, fill:{color:MG}, line:{color:MG} }); s2.addText('C', { x:0.35, y:0.13, w:0.42, h:0.42, fontSize:15, bold:true, color:LT, align:'center', valign:'middle', margin:0 }); }
   s2.addText('Cognota', { x:0.85, y:0.14, w:2, h:0.22, fontSize:13, bold:true, color:WH, margin:0 });
   s2.addText('LEARNOPS PLATFORM', { x:0.85, y:0.36, w:2.5, h:0.14, fontSize:6.5, bold:true, color:LT, charSpacing:3, margin:0 });
   if(prospect){ s2.addText(prospect+(dateStr?' · '+dateStr:''), { x:5, y:0.24, w:4.7, h:0.22, fontSize:11, color:LT, align:'right', margin:0 }); }
@@ -2250,7 +2254,12 @@ async function generatePPTX() {
 
   // ── Assumptions footer ───────────────────────────────────────
   const assText = nv('workDays')+' working days  ·  '+nv('annualHours')+' FTE hrs/yr  ·  '+nv('benefitsMult')+'x benefits multiplier  ·  '+nv('budgetRecoveredPct')+'% budget recovery  ·  '+utilPct+'% Year 1 utilization';
-  s2.addText(assText, { x:0.35, y:5.25, w:9.3, h:0.2, fontSize:8, color:GR, align:'center', margin:0 });
+  s2.addText(assText, { x:0.35, y:5.1, w:9.3, h:0.18, fontSize:8, color:GR, align:'center', margin:0 });
+
+  // ── Disclaimer ───────────────────────────────────────────────
+  s2.addText('Disclaimer: The ROI and financial figures shown are estimates only, based on data from Cognota customers, industry research, and expert input. Your actual ROI may differ. Cognota is not responsible for the accuracy or outcomes of these estimates.', {
+    x:0.35, y:5.3, w:9.3, h:0.28, fontSize:7, color:'BBBBBB', align:'center', margin:0, italic:true
+  });
 
   // ── Save ─────────────────────────────────────────────────────
   const filename = 'Cognota ROI'+(prospect?' — '+prospect:'')+'.pptx';
