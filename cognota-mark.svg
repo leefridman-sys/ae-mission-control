@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="cg" x1="100" y1="30" x2="100" y2="175" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7ECFC4"/>
+      <stop offset="100%" stop-color="#1B5E4E"/>
+    </linearGradient>
+  </defs>
+  <!-- Cognota fingerprint mark — 4 concentric arc strokes -->
+  <!-- Outermost arc (top) -->
+  <path d="M 72 52 Q 105 28 138 52" stroke="url(#cg)" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Second arc -->
+  <path d="M 60 80 Q 105 44 150 78" stroke="url(#cg)" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Third arc (wraps further) -->
+  <path d="M 55 112 Q 58 68 105 62 Q 148 58 155 108" stroke="url(#cg)" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Innermost arc (bottom, shorter) -->
+  <path d="M 60 142 Q 58 95 105 88 Q 148 82 148 135" stroke="url(#cg)" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Bottom tail -->
+  <path d="M 65 168 Q 75 148 90 145" stroke="url(#cg)" stroke-width="14" stroke-linecap="round" fill="none"/>
+</svg>
