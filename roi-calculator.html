@@ -746,8 +746,8 @@
   .pp-stat-label { font-size: 9px; color: #9a9590; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
 
   .pp-investment-bar {
-    display: grid; grid-template-columns: auto 1fr auto;
-    align-items: start; gap: 24px;
+    display: grid; grid-template-columns: auto 1px 1fr;
+    align-items: start; gap: 20px;
     padding: 16px 20px; border: 2px solid #1b3f39; border-radius: 10px;
   }
   .pp-inv-amount { font-size: 28px; font-weight: 700; color: #1b3f39; line-height: 1; margin-bottom: 3px; }
@@ -1405,17 +1405,17 @@
     </div>
 
     <div class="pp-investment-bar">
-      <div>
+      <div style="min-width:160px">
         <div class="pp-inv-amount" id="pp1-investment"></div>
         <div class="pp-inv-label">Annual investment</div>
-        <div class="pp-inv-note">Includes onboarding, ongoing customer success &amp; support, and SSO</div>
+        <div class="pp-inv-note" style="margin-bottom:8px">Includes onboarding, ongoing customer success &amp; support, and SSO</div>
+        <div class="pp-inv-note" id="pp1-term-note" style="color:#1b3f39;font-weight:600"></div>
       </div>
-      <div class="pp-inv-divider"></div>
-      <div style="flex:1">
+      <div style="width:1px;background:#e2ddd7;align-self:stretch"></div>
+      <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#1b3f39;margin-bottom:4px;">Included: Cognota Assist</div>
         <div class="pp-inv-assist">Your subscription includes <strong>5 hours of expert L&amp;D advisory</strong> with a Cognota Assist consultant — former CLOs and senior L&amp;D leaders (e.g. Kimo Kippen, Rob Lauber) who help you map your LearnOps maturity, prioritize implementation, and accelerate adoption. This is not a vendor implementation call — it is strategic counsel from people who have run L&amp;D at scale.</div>
       </div>
-      <div class="pp-inv-right" id="pp1-term-note" style="flex-shrink:0;min-width:120px"></div>
     </div>
   </div>
 
@@ -1942,13 +1942,9 @@ window.addEventListener('beforeprint', function(){
     document.getElementById('pp1-wait').textContent         = val('out_wait') + '/mo';
     document.getElementById('pp1-wait-ramped').textContent  = rampedWait + '/mo';
     document.getElementById('pp1-investment').textContent   = val('out_investment') + '/yr';
-    document.getElementById('pp1-term-note').innerHTML      =
-      (is3yr ? '3-Year term<br>Standard pricing' : '1-Year term<br>+30% flexibility premium') +
-      '<br><br><span style="opacity:.7;font-size:11px">Year 1 value discounted to '+utilPct+'% utilization<br>to account for onboarding &amp; change management ramp</span>';
-    document.getElementById('pp1-term-note').innerHTML  =
-      (is3yr
-        ? '3-Year term<br>Standard pricing'
-        : '1-Year term<br>+30% flexibility premium vs<br>standard 3-year pricing');
+    document.getElementById('pp1-term-note').innerHTML =
+      (is3yr ? '3-Year term · Standard pricing' : '1-Year term · +30% vs standard') +
+      '<br><span style="font-weight:400;color:#9a9590;font-size:10px">Year 1 discounted to '+utilPct+'% for onboarding ramp</span>';
   }
 
   // ── PAGE 2 ──────────────────────────────────────────────────
