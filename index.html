@@ -2139,7 +2139,9 @@ function openSprintAnalysis(oppId){
 
   modal(html);
   var box=document.getElementById('modal-box');
-  if(box)box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;max-height:90vh;overflow-y:auto;box-sizing:border-box;display:block;animation:none;transform:none;box-shadow:none;border:1px solid rgba(0,0,0,.15);';
+  // Break out of the overlay's GPU compositing layer by using position:fixed
+  // centered with margin:auto (no transform, which would re-trigger compositing)
+  if(box)box.style.cssText='position:fixed;inset:0;margin:auto;width:calc(100% - 3rem);max-width:1080px;height:fit-content;max-height:90vh;overflow-y:auto;box-sizing:border-box;background:var(--card);border-radius:14px;padding:1.5rem;z-index:502;animation:none;transform:none;box-shadow:none;border:1px solid rgba(0,0,0,.12);';
 }
 
 function showSprintInput(oppId){
