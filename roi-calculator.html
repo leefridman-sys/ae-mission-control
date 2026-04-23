@@ -746,13 +746,17 @@
   .pp-stat-label { font-size: 11px; color: #9a9590; text-transform: uppercase; letter-spacing: .06em; }
 
   .pp-investment-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; background: #1b3f39; border-radius: 10px; color: #b1d9d1;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: start; gap: 24px;
+    padding: 16px 20px; border: 2px solid #1b3f39; border-radius: 10px;
   }
-  .pp-inv-left { font-size: 13px; }
-  .pp-inv-amount { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 2px; }
-  .pp-inv-note { font-size: 11px; opacity: .7; }
-  .pp-inv-right { text-align: right; font-size: 12px; opacity: .8; line-height: 1.6; }
+  .pp-inv-amount { font-size: 28px; font-weight: 700; color: #1b3f39; line-height: 1; margin-bottom: 3px; }
+  .pp-inv-label  { font-size: 12px; font-weight: 700; color: #1a1714; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .pp-inv-note   { font-size: 11px; color: #9a9590; line-height: 1.4; }
+  .pp-inv-divider{ width: 1px; height: 100%; background: #e2ddd7; align-self: stretch; }
+  .pp-inv-assist { font-size: 11px; color: #1a1714; line-height: 1.5; }
+  .pp-inv-assist strong { color: #1b3f39; font-weight: 700; }
+  .pp-inv-right  { text-align: right; font-size: 12px; color: #5a5550; line-height: 1.6; }
 
   /* ── PAGE 2 styles ── */
   .pp2-title {
@@ -1401,12 +1405,17 @@
     </div>
 
     <div class="pp-investment-bar">
-      <div class="pp-inv-left">
+      <div>
         <div class="pp-inv-amount" id="pp1-investment"></div>
-        <div>Annual investment</div>
+        <div class="pp-inv-label">Annual investment</div>
         <div class="pp-inv-note">Includes onboarding, ongoing customer success &amp; support, and SSO</div>
       </div>
-      <div class="pp-inv-right" id="pp1-term-note"></div>
+      <div class="pp-inv-divider"></div>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#1b3f39;margin-bottom:4px;">Included: Cognota Assist</div>
+        <div class="pp-inv-assist">Your subscription includes <strong>5 hours of expert L&amp;D advisory</strong> with a Cognota Assist consultant — former CLOs and senior L&amp;D leaders (e.g. Kimo Kippen, Rob Lauber) who help you map your LearnOps maturity, prioritize implementation, and accelerate adoption. This is not a vendor implementation call — it is strategic counsel from people who have run L&amp;D at scale.</div>
+      </div>
+      <div class="pp-inv-right" id="pp1-term-note" style="flex-shrink:0;min-width:120px"></div>
     </div>
   </div>
 
