@@ -86,7 +86,8 @@ main{flex:1;padding:2rem 1.5rem 4rem;max-width:1600px;margin:0 auto;width:100%;}
 .error-msg{padding:1.25rem;color:var(--red);font-size:16px;background:#fdf2f2;border-radius:10px;border:1px solid #f5c6c6;line-height:1.6;}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--green);color:#b1d9d1;padding:10px 20px;border-radius:8px;font-size:16px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeUp .2s ease;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
-.modal{background:white;border-radius:14px;padding:1.75rem;max-width:500px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .18s ease;}
+.modal{background:white;border-radius:14px;padding:1.75rem;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .18s ease;}
+.sprint-b{font-weight:700;color:inherit;}
 .modal-title{font-size:17px;font-weight:500;margin-bottom:.25rem;}
 .modal-sub{font-size:16px;color:var(--muted);margin-bottom:1.25rem;line-height:1.5;}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);}
@@ -1989,8 +1990,8 @@ function sprintRenderBody(raw){
   t=t.replace(/^## ([^#\n].+)$/gm,'<div style="font-size:14px;color:var(--muted);margin-bottom:.5rem">$1</div>');
   // ### sub-headings
   t=t.replace(/^###\s+(.+)$/gm,'<div style="font-size:14px;font-weight:700;color:var(--accent2);margin:.8rem 0 .3rem;padding-bottom:.2rem;border-bottom:1px solid var(--light)">$1</div>');
-  // Bold — scoped to single line, no cross-line bleed
-  t=t.replace(/\*\*([^*\n]{1,120})\*\*/g,'<strong style="font-weight:700">$1</strong>');
+  // Bold — use CSS class to avoid GPU compositing blur on macOS
+  t=t.replace(/\*\*([^*\n]{1,120})\*\*/g,'<b class="sprint-b">$1</b>');
   // Italic
   t=t.replace(/\*([^*\n]{1,80})\*/g,'<em>$1</em>');
   // HR
@@ -2098,7 +2099,7 @@ function openSprintAnalysis(oppId){
       '</div>':'')+
 
     // Input panel — new analysis
-    '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'flex')+';flex-direction:column;flex:1">'+
+    '<div id="sprint-input-panel" style="display:'+(hasAnalysis?'none':'flex')+';flex-direction:column;">'+
       '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem;line-height:1.5">Paste one or more Gong call transcripts. Separate multiples with <code style="background:var(--bg);padding:1px 4px;border-radius:3px">--- CALL 2 ---</code></div>'+
       '<textarea id="sprint-transcript" placeholder="Paste Gong transcript(s) here..." style="flex:1;width:100%;padding:.75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:none;line-height:1.6;color:var(--text);margin-bottom:.75rem;box-sizing:border-box;min-height:200px"></textarea>'+
       '<button onclick="runSprintAnalysis(\''+oppId+'\')" class="btn" style="padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><span>⚡</span><span>Run Sprint Analysis</span></button>'+
@@ -2116,7 +2117,7 @@ function openSprintAnalysis(oppId){
     '</div>'+
 
     // Results
-    '<div id="sprint-results-panel" style="flex:1;overflow-y:auto;display:'+(hasAnalysis?'block':'none')+'">'+
+    '<div id="sprint-results-panel" style="display:'+(hasAnalysis?'block':'none')+'">'+
       (hasAnalysis?buildSprintAccordion(oppId,meta.analysis):'')+
     '</div>'+
     '<div style="flex-shrink:0;padding-top:.75rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;margin-top:.75rem">'+
@@ -2125,12 +2126,12 @@ function openSprintAnalysis(oppId){
 
   modal(html);
   var box=document.getElementById('modal-box');
-  if(box)box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;height:90vh;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;';
+  if(box)box.style.cssText='background:var(--card);border-radius:14px;padding:1.5rem;width:100%;max-width:1080px;max-height:90vh;overflow-y:auto;box-sizing:border-box;display:block;';
 }
 
 function showSprintInput(oppId){
-  document.getElementById('sprint-input-panel').style.display='flex';
-  document.getElementById('sprint-results-panel').style.display='none';
+  var ip=document.getElementById('sprint-input-panel');if(ip)ip.style.display='flex';
+  var rp=document.getElementById('sprint-results-panel');if(rp)rp.style.display='none';
   var ap=document.getElementById('sprint-addcall-panel');if(ap)ap.style.display='none';
 }
 
