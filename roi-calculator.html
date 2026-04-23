@@ -1235,37 +1235,46 @@
           <div class="hero-grid">
             <div class="hero-stat">
               <span class="label">Added FTE capacity
-                <span class="tip" data-tip="Total hours saved ÷ Annual FTE hours (default 2,080). A measure of how much team capacity is freed up.">?</span>
+                <span class="tip" data-tip="Total hours saved ÷ Annual FTE hours (default 2,080). Unchanged by utilization rate — hours saved are hours saved.">?</span>
               </span>
               <div class="value" id="out_fte">0</div>
             </div>
             <div class="hero-stat">
-              <span class="label">Months to payback
-                <span class="tip" data-tip="Total investment ÷ (One-year value ÷ 12). How quickly Cognota pays for itself.">?</span>
+              <span class="label">Months to payback <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+                <span class="tip" data-tip="Investment ÷ (Year 1 value ÷ 12), adjusted for onboarding and change management ramp.">?</span>
               </span>
               <div class="value" id="out_payback">0</div>
+              <div style="font-size:12px;color:var(--mid-grey-1);margin-top:2px">Ramped: <span id="out_payback_ramped" style="font-weight:600">—</span></div>
             </div>
             <div class="hero-stat">
-              <span class="label">One-year value created
-                <span class="tip" data-tip="Tool cost savings + Time-cost savings + Productivity value.">?</span>
+              <span class="label">Year 1 value created <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+                <span class="tip" data-tip="Fully ramped value × utilization rate. Accounts for onboarding and change management lag.">?</span>
               </span>
               <div class="value" id="out_valueTotal">$0</div>
+              <div style="font-size:12px;color:var(--mid-grey-1);margin-top:2px">Fully ramped: <span id="out_valueTotal_ramped" style="font-weight:600">—</span></div>
             </div>
             <div class="hero-stat">
-              <span class="label">Monthly cost of waiting
-                <span class="tip" data-tip="One-year value ÷ 12. The value you forfeit for every month a decision is delayed.">?</span>
+              <span class="label">Monthly cost of waiting <span style="font-size:11px;background:var(--orange-tint,#fff5f0);color:var(--orange);border-radius:4px;padding:1px 5px;font-weight:700">Year 1</span>
+                <span class="tip" data-tip="Year 1 value ÷ 12. Every month of delay costs this much in foregone value.">?</span>
               </span>
               <div class="value" id="out_wait">$0</div>
+              <div style="font-size:12px;color:var(--mid-grey-1);margin-top:2px">Fully ramped: <span id="out_wait_ramped" style="font-weight:600">—</span></div>
             </div>
           </div>
 
           <!-- Featured ROI (the headline) -->
           <div class="hero-featured">
-            <span class="hero-featured-label">One-Year Return on Investment
-              <span class="tip" data-tip="(One-year value − Total investment) ÷ Total investment × 100%.">?</span>
+            <span class="hero-featured-label">Year 1 Return on Investment
+              <span class="tip" data-tip="(Year 1 value − Investment) ÷ Investment × 100%. Discounted by utilization rate to account for onboarding and change management ramp.">?</span>
             </span>
             <div class="hero-featured-value" id="out_roi">0%</div>
-            <span class="hero-featured-sub">Projected return in the first 12 months with Cognota</span>
+            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px;flex-wrap:wrap">
+              <span class="hero-featured-sub">Conservative Year 1 estimate — accounts for onboarding &amp; change management ramp</span>
+            </div>
+            <div style="margin-top:10px;padding:8px 20px;background:var(--green-tint);border-radius:8px;display:inline-flex;align-items:center;gap:10px;font-size:14px">
+              <span style="color:var(--mid-grey-2)">Fully ramped (Year 2+):</span>
+              <span id="out_roi_ramped" style="font-size:20px;font-weight:700;color:var(--green-deep)">—</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1303,6 +1312,15 @@
         <div class="field">
           <label for="fteHours">FTE capacity denominator (hours / FTE)</label>
           <input type="number" id="fteHours" value="2080" min="1" step="1" />
+        </div>
+        <div class="field" style="grid-column:1/-1;border-top:1px solid var(--light-grey-2);padding-top:14px;margin-top:4px">
+          <label for="utilizationPct" style="font-weight:700;color:var(--near-black)">Year 1 utilization rate (%)</label>
+          <div class="input-wrap">
+            <input type="number" id="utilizationPct" value="75" min="10" max="100" step="5" />
+          </div>
+          <div style="font-size:12px;color:var(--mid-grey-1);margin-top:5px;line-height:1.5">
+            Discounts Year 1 value to account for onboarding ramp (~4 weeks) and change management lag. 75% = roughly 10 weeks before full utilization. Adjust up if the team has high change readiness.
+          </div>
         </div>
       </div>
       <div class="assumptions-note">
@@ -1544,11 +1562,16 @@ function recalc() {
   const prodTotal = budgetRec + prodVal;
 
   // ---- Roll-ups ----
-  const valueTotal = toolTotal + costTotal + prodTotal;
-  const roi        = investment > 0 ? ((valueTotal - investment) / investment) * 100 : 0;
-  const payback    = valueTotal > 0 ? investment / (valueTotal / 12) : 0;
-  const monthlyVal = valueTotal / 12;
-  const fte        = fteHours > 0 ? hrTotal / fteHours : 0;
+  const utilization  = Math.min(1, Math.max(0.1, (num('utilizationPct') || 75) / 100));
+  const valueTotal   = toolTotal + costTotal + prodTotal;           // fully ramped
+  const valueYear1   = valueTotal * utilization;                    // Year 1 discounted
+  const roi          = investment > 0 ? ((valueYear1  - investment) / investment) * 100 : 0;
+  const roiRamped    = investment > 0 ? ((valueTotal  - investment) / investment) * 100 : 0;
+  const payback      = valueYear1  > 0 ? investment / (valueYear1  / 12) : 0;
+  const paybackRamped= valueTotal  > 0 ? investment / (valueTotal  / 12) : 0;
+  const monthlyVal   = valueYear1  / 12;
+  const monthlyRamped= valueTotal  / 12;
+  const fte          = fteHours > 0 ? hrTotal / fteHours : 0;
 
   // ---- Paint outputs ----
   // Annual costs
@@ -1586,8 +1609,13 @@ function recalc() {
   $('out_roi').textContent        = fmtPct(roi);
   $('out_fte').textContent        = fmtNum(fte, 1);
   $('out_payback').textContent    = fmtNum(Math.max(0, Math.round(payback * 10) / 10), 1);
-  $('out_valueTotal').textContent = fmtUSD(valueTotal);
+  $('out_valueTotal').textContent = fmtUSD(valueYear1);
   $('out_wait').textContent       = fmtUSD(monthlyVal);
+  // Ramped (Year 2+) secondaries
+  $('out_roi_ramped').textContent        = fmtPct(roiRamped);
+  $('out_payback_ramped').textContent    = fmtNum(Math.max(0, Math.round(paybackRamped * 10) / 10), 1) + ' mo';
+  $('out_valueTotal_ramped').textContent = fmtUSD(valueTotal);
+  $('out_wait_ramped').textContent       = fmtUSD(monthlyRamped);
 }
 
 // ------------------------------------------------------------------
@@ -1600,7 +1628,7 @@ const watchedIds = [
   'managerMinSaved','annualBudget',
   // assumptions
   'workDays','annualHours','benefitsMult',
-  'budgetRecoveredPct','productivityPct','fteHours'
+  'budgetRecoveredPct','productivityPct','fteHours','utilizationPct'
 ];
 
 watchedIds.forEach(id => $(id).addEventListener('input', recalc));
@@ -1627,7 +1655,7 @@ function resetDefaults() {
     annualBudget: 1000000, adminFTEs: 1,
     workDays: 250, annualHours: 2080, benefitsMult: 1.2,
     budgetRecoveredPct: 5, productivityPct: 2,
-    fteHours: 2080
+    fteHours: 2080, utilizationPct: 75
   };
   Object.entries(defaults).forEach(([k,v]) => { $(k).value = v; });
   $('customerName').value = '';
@@ -1763,6 +1791,7 @@ function saveSnapshot() {
     budgetRecoveredPct: $('budgetRecoveredPct').value,
     productivityPct: $('productivityPct').value,
     fteHours: $('fteHours').value,
+    utilizationPct: $('utilizationPct').value,
     // Pain points
     painProspect: ($('pain-prospect') || {}).value || '',
     painText: ($('pain-textarea') || {}).value || '',
@@ -1865,12 +1894,22 @@ window.addEventListener('beforeprint', function(){
     document.getElementById('pp1-date').textContent = dateStr;
     if(prospect) document.getElementById('pp1-subtitle').textContent =
       'First-year return on Cognota for ' + prospect;
+    var utilPct = numVal('utilizationPct') || 75;
     document.getElementById('pp1-roi').textContent       = val('out_roi');
     document.getElementById('pp1-value').textContent     = val('out_valueTotal');
     document.getElementById('pp1-payback').textContent   = val('out_payback');
     document.getElementById('pp1-fte').textContent       = val('out_fte');
     document.getElementById('pp1-wait').textContent      = val('out_wait') + '/mo';
     document.getElementById('pp1-investment').textContent = val('out_investment') + '/yr';
+    // Ramped note
+    var rampedRoi = ($('out_roi_ramped')||{}).textContent || '';
+    var rampedVal = ($('out_valueTotal_ramped')||{}).textContent || '';
+    document.getElementById('pp1-term-note').innerHTML  =
+      (is3yr ? '3-Year term — Standard pricing' : '1-Year term — +30% vs standard') +
+      '<br><br>' +
+      '<strong style="color:#b1d9d1">Fully ramped (Year 2+):</strong><br>' +
+      rampedRoi + ' ROI · ' + rampedVal + ' value' +
+      '<br><span style="opacity:.65;font-size:11px">Year 1 discounted to ' + utilPct + '% utilization<br>to account for onboarding &amp; change management</span>';
     document.getElementById('pp1-term-note').innerHTML  =
       (is3yr
         ? '3-Year term<br>Standard pricing'
