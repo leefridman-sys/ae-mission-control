@@ -2371,6 +2371,7 @@ function loadProspecting(){
       '</div>'+
     '</div>'+
     '<div id="ob-scorecard" style="margin-bottom:1.25rem"></div>'+
+    '<div id="ob-engaged" style="margin-bottom:1.25rem"></div>'+
     '<div id="ob-queue" style="margin-bottom:1.25rem"></div>'+
     '<div style="display:flex;gap:6px;margin-bottom:.75rem;align-items:center">'+
       '<button class="btn btn-sm" id="ob-f-all" onclick="setObFilter(\'all\')">All ('+accounts.length+')</button>'+
@@ -2382,6 +2383,7 @@ function loadProspecting(){
   renderObTable();
   renderObQueue();
   renderObScorecard();
+  renderEngagedLeads();
 }
 
 function renderObQueue(){
@@ -3633,6 +3635,165 @@ function logTouchDone(id,ci,num){
   } else {
     showToast('✓ Touch '+num+' marked done'+(touch.channel!=='LinkedIn DM'?' (SF auto-captures this)':''));
   }
+}
+
+// ── ENGAGED LEADS ─────────────────────────────────────────────────────────────
+function renderEngagedLeads(){
+  var el=document.getElementById('ob-engaged');if(!el)return;
+  // Collect all contacts with status 'engaged' or 'booked' across all accounts
+  var rows=[];
+  getObAccounts().forEach(function(acct){
+    (acct.contacts||[]).forEach(function(c,ci){
+      if(c.status==='engaged'||c.status==='booked'){
+        rows.push({acct:acct,contact:c,ci:ci});
+      }
+    });
+  });
+  if(!rows.length){el.innerHTML='';return;}
+
+  var bookedRows=rows.filter(function(r){return r.contact.status==='booked';});
+  var engagedRows=rows.filter(function(r){return r.contact.status==='engaged';});
+
+  function row(r){
+    var c=r.contact;var acct=r.acct;
+    var meetingDate=c.meetingDate?'<span style="font-size:13px;background:var(--light);color:var(--accent2);border-radius:10px;padding:1px 8px;font-weight:600">📅 '+c.meetingDate+'</span>':'';
+    var lastNote=c.meetingNotes?(c.meetingNotes.split('\n')[0].slice(0,60)+'…'):'';
+    return'<div style="display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);margin-bottom:6px;cursor:pointer" onclick="openMeetingNotes(\''+acct.id+'\','+r.ci+')">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:15px">'+esc(c.name)+'<span style="font-weight:400;color:var(--muted);font-size:14px"> · '+esc(acct.name)+'</span></div>'+
+        (c.title?'<div style="font-size:13px;color:var(--muted)">'+esc(c.title)+'</div>':'')+
+        (lastNote?'<div style="font-size:13px;color:var(--muted);margin-top:2px;font-style:italic">'+esc(lastNote)+'</div>':'')+
+      '</div>'+
+      meetingDate+
+      '<span class="ob-c-status '+c.status+'" style="font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap">'+c.status+'</span>'+
+      '<button class="btn-ghost btn-sm" onclick="event.stopPropagation();openMeetingNotes(\''+acct.id+'\','+r.ci+')" style="font-size:13px;white-space:nowrap">Notes →</button>'+
+    '</div>';
+  }
+
+  el.innerHTML=
+    '<div class="card" style="border-left:3px solid var(--accent)">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.85rem">'+
+        '<div style="font-size:16px;font-weight:500">🎯 Engaged Leads</div>'+
+        '<span style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:13px;font-weight:600">'+rows.length+'</span>'+
+      '</div>'+
+      (bookedRows.length?'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Meeting booked</div>'+bookedRows.map(row).join(''):'') +
+      (engagedRows.length?(bookedRows.length?'<div style="height:10px"></div>':'')+'<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Engaged (no meeting yet)</div>'+engagedRows.map(row).join(''):'') +
+    '</div>';
+}
+
+// ── MEETING NOTES ──────────────────────────────────────────────────────────────
+function bookMeeting(id,ci){
+  var acct=getObAccount(id);if(!acct)return;
+  var contact=acct.contacts[ci];if(!contact)return;
+  // Cancel remaining uncompleted touches
+  (contact.touches||[]).forEach(function(t){
+    if(!t.completedDate)t.cancelledDate=new Date().toISOString().slice(0,10);
+  });
+  contact.status='booked';
+  acct.status='booked';
+  contact.lastTouched=new Date().toISOString().slice(0,10);
+  acct.lastTouched=new Date().toISOString().slice(0,10);
+  contact.meetingNotes=contact.meetingNotes||'';
+  contact.meetingLog=contact.meetingLog||[];
+  saveObAccount(acct);
+  renderObTable();
+  renderEngagedLeads();
+  openMeetingNotes(id,ci);
+}
+
+function openMeetingNotes(id,ci){
+  var acct=getObAccount(id);if(!acct)return;
+  var contact=acct.contacts[ci];if(!contact)return;
+  contact.meetingLog=contact.meetingLog||[];
+
+  var logHtml=contact.meetingLog.length
+    ?contact.meetingLog.map(function(entry,i){
+        return'<div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:6px">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+            '<span style="font-size:13px;font-weight:700;color:var(--accent2)">📅 '+esc(entry.date)+'</span>'+
+            '<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:'+(entry.outcome==='Positive'?'#d1fae5':entry.outcome==='Negative'?'#fee2e2':'#fef3c7')+';color:'+(entry.outcome==='Positive'?'#065f46':entry.outcome==='Negative'?'#991b1b':'#92400e')+';font-weight:600">'+esc(entry.outcome)+'</span>'+
+          '</div>'+
+          '<div style="font-size:14px;color:var(--text);white-space:pre-wrap;line-height:1.6">'+esc(entry.notes)+'</div>'+
+        '</div>';
+      }).join('')
+    :'<div style="font-size:14px;color:var(--muted);padding:.5rem 0">No meetings logged yet.</div>';
+
+  var html=
+    '<div class="modal-title" style="display:flex;align-items:center;gap:10px">'+
+      '<span>🎯</span>'+
+      '<div>'+esc(contact.name)+'<span style="font-weight:400;font-size:16px;color:var(--muted)"> · '+esc(acct.name)+'</span></div>'+
+    '</div>'+
+
+    // Meeting date
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.75rem 1rem;background:var(--bg);border-radius:8px;border:1px solid var(--border)">'+
+      '<label style="font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap">📅 Meeting date</label>'+
+      '<input id="mn-date" type="date" value="'+esc(contact.meetingDate||'')+'" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:15px;background:var(--card);flex:1">'+
+    '</div>'+
+
+    // Prep / running notes
+    '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Notes</div>'+
+    '<textarea id="mn-notes" rows="7" placeholder="e.g. David agreed to meeting next Tuesday — I will ask him about x, y, z. They are evaluating two other vendors. Decision maker is the CLO not the VP..." style="width:100%;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text)">'+esc(contact.meetingNotes||'')+'</textarea>'+
+
+    // Log a meeting
+    '<div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">'+
+      '<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.6rem">Log a meeting held</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+        '<input id="mn-log-date" type="date" value="'+new Date().toISOString().slice(0,10)+'" style="padding:5px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">'+
+        '<select id="mn-log-outcome" style="padding:5px 8px;font-size:15px;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-family:DM Sans,sans-serif">'+
+          '<option>Positive</option><option>Neutral</option><option>Negative</option>'+
+        '</select>'+
+      '</div>'+
+      '<textarea id="mn-log-notes" rows="3" placeholder="How did it go? Key takeaways, next steps..." style="width:100%;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text);margin-bottom:8px"></textarea>'+
+      '<button class="btn btn-sm" onclick="logMeetingHeld(\''+id+'\','+ci+')">Log meeting ✓</button>'+
+    '</div>'+
+
+    // Past meetings log
+    (contact.meetingLog.length?'<div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.6rem">Meeting history</div>'+logHtml+'</div>':'')+
+
+    '<div class="modal-footer" style="justify-content:space-between">'+
+      '<button class="btn-ghost btn-sm" onclick="openStrategyChat(\''+id+'\')" style="color:var(--muted)">💬 Strategy chat</button>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
+        '<button class="btn" onclick="saveMeetingNotes(\''+id+'\','+ci+')">Save notes</button>'+
+      '</div>'+
+    '</div>';
+
+  var box=document.getElementById('modal-box');
+  box.innerHTML=html;
+  box.style.maxWidth='680px';
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function saveMeetingNotes(id,ci){
+  var acct=getObAccount(id);if(!acct)return;
+  var contact=acct.contacts[ci];if(!contact)return;
+  contact.meetingDate=(document.getElementById('mn-date')||{}).value||contact.meetingDate;
+  contact.meetingNotes=(document.getElementById('mn-notes')||{}).value||'';
+  saveObAccount(acct);
+  renderEngagedLeads();
+  showToast('Notes saved');
+  closeModal();
+}
+
+function logMeetingHeld(id,ci){
+  var acct=getObAccount(id);if(!acct)return;
+  var contact=acct.contacts[ci];if(!contact)return;
+  var logDate=(document.getElementById('mn-log-date')||{}).value||new Date().toISOString().slice(0,10);
+  var logOutcome=(document.getElementById('mn-log-outcome')||{}).value||'Neutral';
+  var logNotes=(document.getElementById('mn-log-notes')||{}).value||'';
+  if(!logNotes.trim()){showToast('Add some notes before logging');return;}
+  // Save prep notes too
+  contact.meetingDate=(document.getElementById('mn-date')||{}).value||contact.meetingDate;
+  contact.meetingNotes=(document.getElementById('mn-notes')||{}).value||contact.meetingNotes;
+  contact.meetingLog=contact.meetingLog||[];
+  contact.meetingLog.unshift({date:logDate,outcome:logOutcome,notes:logNotes});
+  contact.lastTouched=logDate;
+  acct.lastTouched=logDate;
+  saveObAccount(acct);
+  renderObTable();
+  renderEngagedLeads();
+  showToast('Meeting logged ✓');
+  openMeetingNotes(id,ci); // re-render with new entry
 }
 
 // ── STRATEGY CHAT ─────────────────────────────────────────────────────────────
