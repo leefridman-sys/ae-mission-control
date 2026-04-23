@@ -1773,9 +1773,10 @@ function renderKanbanCard(d){
       '<span style="font-family:DM Mono,monospace;font-size:16px;font-weight:500;color:var(--accent2)">'+fmt$(d.amount)+'</span>'+
       '<span style="font-size:13px;color:var(--muted)">'+(d.oppAge!=null?d.oppAge+'d old':'')+'</span>'+
     '</div>'+
-    '<div style="display:flex;gap:6px;margin-top:8px">'+
-      '<button onclick="dealInsight('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="flex:1;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif">✦ What should I do next?</button>'+
-      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="position:relative;background:'+(hasChat?'var(--accent)':'var(--bg)')+';border:1px solid '+(hasChat?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 8px;font-size:14px;color:'+(hasChat?'#fff':'var(--muted)')+';cursor:pointer;" title="Strategy chat">💬'+(chatCount?'<span style="position:absolute;top:-5px;right:-5px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;font-size:11px;font-weight:700;padding:0 4px;line-height:1.6">'+chatCount+'</span>':'')+'</button>'+
+    '<div style="margin-top:8px">'+
+      '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="position:relative;width:100%;background:'+(hasChat?'var(--accent)':'#edf7f5')+';border:1px solid '+(hasChat?'var(--accent)':'var(--light)')+';border-radius:6px;padding:5px;font-size:14px;color:'+(hasChat?'#fff':'var(--accent2)')+';cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;" title="Strategy chat">'+
+        '<span>💬</span><span>Strategy chat</span>'+(chatCount?'<span style="background:'+(hasChat?'rgba(255,255,255,.25)':'var(--accent)')+';color:#fff;border-radius:10px;font-size:12px;font-weight:700;padding:0 6px;line-height:1.6">'+chatCount+'</span>':'')+
+      '</button>'+
     '</div>'+
   '</div>';
 }
@@ -1804,7 +1805,7 @@ function renderPipelineList(deals){
           '<div style="text-align:right;flex-shrink:0">'+
             '<div class="deal-amount">'+fmt$(d.amount)+'</div>'+
             (d.oppAge!=null?'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+d.oppAge+'d old</div>':'')+
-            '<button onclick="dealInsight('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="margin-top:8px;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px 10px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">✦ Next action?</button>'+
+            '<button onclick="openDealStrategy('+JSON.stringify(d).replace(/"/g,"'")+',event)" style="margin-top:8px;background:#edf7f5;border:1px solid var(--light);border-radius:6px;padding:4px 10px;font-size:14px;color:var(--accent2);cursor:pointer;font-family:DM Sans,sans-serif;display:block;width:100%">💬 Strategy chat</button>'+
           '</div>'+
         '</div>'+
         (d.gongSummary?'<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);font-size:14px;color:var(--muted)">🎙 Gong: '+esc(d.gongSummary)+'</div>':'')+
@@ -1859,7 +1860,8 @@ function openDealStrategy(d,evt){
       '<textarea id="'+chatId+'-input" placeholder="\'What\'s my best path to getting a champion here?\' or \'They\'re evaluating two other vendors — how do I differentiate?\'" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font-size:15px;font-family:DM Sans,sans-serif;resize:none;min-height:60px;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendDealChat(\''+dealId+'\','+JSON.stringify(d).replace(/"/g,"'")+');event.preventDefault();}"></textarea>'+
       '<button onclick="sendDealChat(\''+dealId+'\','+JSON.stringify(d).replace(/"/g,"'")+',event)" class="btn" style="padding:10px 16px;align-self:flex-end">Send<br><span style="font-size:12px;opacity:.7">⌘↵</span></button>'+
     '</div>'+
-    '<div class="modal-footer" style="justify-content:flex-end;margin-top:.5rem">'+
+    '<div class="modal-footer" style="justify-content:space-between;margin-top:.5rem">'+
+      '<button class="btn-ghost btn-sm" onclick="openDealChatImport(\''+dealId+'\')" style="font-size:13px;color:var(--muted)">📋 Import prior conversation</button>'+
       '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
     '</div>';
 
@@ -1900,6 +1902,7 @@ function sendDealChat(dealId,d,evt){
     thread.scrollTop=thread.scrollHeight;
   }
 
+  var meta2=getDealMeta(dealId);
   var system='You are a strategic sales advisor helping Lee Fridman, an AE at Cognota, win a deal.\n\n'+
     'Deal context:\n'+
     '- Opportunity: '+d.name+'\n'+
@@ -1908,7 +1911,8 @@ function sendDealChat(dealId,d,evt){
     '- Amount: '+fmt$(d.amount)+'\n'+
     (d.nextStep?'- Next step in SF: '+d.nextStep+'\n':'')+
     (d.oppAge?'- Days in pipeline: '+d.oppAge+'\n':'')+
-    '\nCognota is a LearnOps platform for L&D teams. Be specific, opinionated, and concise. Lee needs tactical advice he can act on today.';
+    '\nCognota is a LearnOps platform for L&D teams. Be specific, opinionated, and concise. Lee needs tactical advice he can act on today.'+
+    (meta2.priorContext?'\n\n---\nPRIOR CONVERSATION HISTORY (from Claude Desktop — treat this as full context for this deal):\n\n'+meta2.priorContext:'');
 
   var messages=meta.chat.map(function(m){return{role:m.role,content:m.content};});
 
@@ -1940,6 +1944,35 @@ function sendDealChat(dealId,d,evt){
     if(thinkEl)thinkEl.remove();
     showToast('Could not reach Claude — try again');
   });
+}
+
+function openDealChatImport(dealId){
+  var meta=getDealMeta(dealId);
+  var html=
+    '<div class="modal-title">📋 Import prior conversation</div>'+
+    '<p style="font-size:15px;color:var(--muted);margin-bottom:1rem;line-height:1.6">'+
+      'In Claude Desktop, select all the text in your Fairlife conversation (⌘A), copy it, and paste it below. Claude will use it as context going forward — you won\'t lose anything.'+
+    '</p>'+
+    '<textarea id="import-paste" rows="12" placeholder="Paste your Claude Desktop conversation here..." style="width:100%;padding:.6rem .8rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.6;color:var(--text)">'+esc(meta.priorContext||'')+'</textarea>'+
+    '<div class="modal-footer" style="justify-content:space-between">'+
+      '<div style="font-size:13px;color:var(--muted)">'+(meta.priorContext?'Prior conversation already saved — paste to replace it.':'')+'</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn-ghost" onclick="closeModal()">Cancel</button>'+
+        '<button class="btn" onclick="saveDealChatImport(\''+dealId+'\')">Save context</button>'+
+      '</div>'+
+    '</div>';
+  modal(html);
+  document.getElementById('modal-box').style.maxWidth='640px';
+}
+
+function saveDealChatImport(dealId){
+  var text=(document.getElementById('import-paste')||{}).value||'';
+  if(!text.trim()){showToast('Nothing to save');return;}
+  var meta=getDealMeta(dealId);
+  meta.priorContext=text.trim();
+  saveDealMeta(dealId,meta);
+  showToast('Prior conversation saved — Claude will reference it going forward ✓');
+  closeModal();
 }
 
 function clearDealChat(dealId){
