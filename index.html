@@ -1910,17 +1910,17 @@ Scoring 0–6: 0=No collaboration plan | 1=Co-created plan confirmed with Power 
 3–5 sentences: where deal stands, current stage, critical next move.
 
 ## 2. SPRINT Vitals Scorecard
-For each vital (Pain, Power, Vision, Value, Consensus): score X/6, evidence from transcript, gaps/unconfirmed, recommended next sprint action.
+For each vital (Pain, Power, Vision, Value, Consensus): score X/6, key evidence, gaps, next sprint action. Be concise — 3-4 bullets max per vital.
 
-Then at the END of this section, output a summary table in EXACTLY this format — every row on one line, no wrapping:
+End with a summary table (every row on ONE line, no wrapping):
 | Vital | Score | Status |
 |-------|-------|--------|
-| Pain | X/6 | One concise line summarising deal health for this vital |
-| Power | X/6 | One concise line |
-| Vision | X/6 | One concise line |
-| Value | X/6 | One concise line |
-| Consensus | X/6 | One concise line |
-| **Overall** | **X/30** | **AMBER** — one-line deal health summary |
+| Pain | X/6 | One-line status |
+| Power | X/6 | One-line status |
+| Vision | X/6 | One-line status |
+| Value | X/6 | One-line status |
+| Consensus | X/6 | One-line status |
+| **Overall** | **X/30** | **AMBER** — one-line summary |
 
 ## 3. Paint the Pain
 Customer pain in their own language. Specific — business impact, operational friction, emotional weight. Sharp enough they'd say "yes, exactly."
@@ -2379,7 +2379,7 @@ function runSprintUpdate(oppId){
   var updatePrompt=SPRINT_PROMPT+'\n\n# UPDATE MODE — CRITICAL RULES\nYou are updating an EXISTING deal analysis. You MUST return ALL 7 sections every time — never return partial output.\n\nRules:\n1. ALWAYS output all 7 sections (## 1. through ## 7.) in full — even sections with no changes.\n2. Keep all existing text intact unless a specific change is needed.\n3. For any vital scores that have new evidence: update the score and add the evidence.\n4. For any [UNCONFIRMED] items confirmed in the new call: replace with [CONFIRMED] and note what confirmed it.\n5. Add new insights to relevant sections where the new call adds information.\n6. Mark changed items with [UPDATED ↑], [UPDATED ↓], or [CONFIRMED] so changes are visible.\n7. Update the POV for Re-Engagement to reflect the latest call.\n8. MANDATORY: Your response must begin with ## 1. and end with ## 7. — all 7 sections, complete and in order. Partial output is not acceptable.\n9. For ALL markdown tables, put EVERY row on a SINGLE LINE: | cell1 | cell2 | cell3 | — never split a row across multiple lines.';
 
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    model:'claude-sonnet-4-6',max_tokens:8000,stream:false,
+    model:'claude-sonnet-4-6',max_tokens:6000,stream:false,
     system:updatePrompt,
     messages:[{role:'user',content:'EXISTING ANALYSIS:\n\n'+meta.analysis+'\n\n---\n\nNEW CALL TRANSCRIPT:\n\n'+newTranscript+'\n\n---\n\nPlease update the analysis based on the new call, following the UPDATE MODE rules.'}]
   })}).then(function(r){return r.json();}).then(function(res){
@@ -2403,7 +2403,7 @@ function runSprintAnalysis(oppId){
   var btn=document.querySelector('#sprint-input-panel .btn');
   if(btn){btn.disabled=true;btn.innerHTML='<span>⚡</span><span>Analyzing…</span>';}
   fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    model:'claude-sonnet-4-6',max_tokens:8000,stream:false,
+    model:'claude-sonnet-4-6',max_tokens:6000,stream:false,
     system:SPRINT_PROMPT,
     messages:[{role:'user',content:'Analyze the following Gong call transcript(s) and produce the full SPRINT Selling deal intelligence brief.'+dealContext+'\n\n---\n\n'+transcript}]
   })}).then(function(r){return r.json();}).then(function(res){
