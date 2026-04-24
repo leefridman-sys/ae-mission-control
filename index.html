@@ -2226,6 +2226,7 @@ function openSprintAnalysis(oppId){
         (hasAnalysis?'<button onclick="copySprintAnalysis(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">📋 Copy all</button>':'') +
         (hasAnalysis?'<button onclick="openSprintInBrowser(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">↗ Open in browser</button>':'')+
         (hasAnalysis?'<button onclick="showAddCallPanel(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px">➕ Add call</button>':'')+
+        (hasAnalysis?'<button onclick="showSprintInput(\''+oppId+'\')" class="btn-ghost btn-sm" style="font-size:13px;color:var(--muted)">↺ Re-run</button>':'')+
       '</div>'+
     '</div>'+
 
