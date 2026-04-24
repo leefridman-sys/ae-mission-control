@@ -1978,6 +1978,13 @@ function sprintRenderTable(block){
 function sprintRenderBody(raw){
   // Collapse 3+ consecutive newlines to max 2 before any processing
   var t=raw.replace(/\n{3,}/g,'\n\n');
+  // Pre-process: join table continuation lines (cell content that wraps to next line)
+  // A continuation line follows a | line but doesn't start with | or #
+  var prev='';
+  while(prev!==t){
+    prev=t;
+    t=t.replace(/([ \t]*\|[^\n]+)\n([^\n|#\-*\d][^\n]*)\n(?=[ \t]*\|)/g,'$1 $2\n');
+  }
   t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // Tables — ensure trailing newline so last row is captured
   t=t.replace(/((?:\|[^\n]+\|[\n]?)+)/g,function(block){
@@ -2009,7 +2016,7 @@ function sprintRenderBody(raw){
   t=t.replace(/\*\*Next Sprint Action[:\s]*\*\*/gi,
     '<span style="display:inline-block;background:#edf7f5;color:#2d5e54;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px;border:1px solid #b1d9d1;text-transform:uppercase;letter-spacing:.04em">⚡ Next Sprint Action</span> ');
   // Bold
-  t=t.replace(/\*\*([^*\n]{1,120})\*\*/g,'<b class="sprint-b">$1</b>');
+  t=t.replace(/\*\*([^*\n]{1,400})\*\*/g,'<b class="sprint-b">$1</b>');
   // Italic
   t=t.replace(/\*([^*\n]{1,80})\*/g,'<em>$1</em>');
   // HR
