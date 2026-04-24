@@ -1949,11 +1949,17 @@ function sprintColorCell(content){
 
 function sprintRenderTable(block){
   var rows=block.trim().split('\n');
-  var dataRows=rows.filter(function(r){return!/^\|[\s|:-]+\|$/.test(r.trim());});
+  // Filter separator rows (|---|---| pattern)
+  var dataRows=rows.filter(function(r){return r.trim()&&!/^\|[\s|:-]+$/.test(r.trim());});
   if(dataRows.length<2)return block;
+  // Determine max column count from header
+  var headerCells=dataRows[0].trim().replace(/^\||\|$/g,'').split('|');
+  var colCount=headerCells.length;
   var html='<div style="overflow-x:auto;margin:6px 0 4px"><table style="width:100%;border-collapse:collapse;font-size:14px">';
   dataRows.forEach(function(row,ri){
     var cells=row.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
+    // Pad short rows to match header column count
+    while(cells.length<colCount) cells.push('');
     var isHead=ri===0;
     // Use hardcoded colours (works in both dashboard and browser page)
     var rowStyle=isHead?'background:#2d5e54;color:#fff;font-weight:600;':(ri%2===0?'background:#f9f7f4;':'background:#fff;');
@@ -2006,10 +2012,9 @@ function sprintRenderBody(raw){
     t=out.join('\n');
   })();
   t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Tables — ensure trailing newline so last row is captured
-  t=t.replace(/((?:\|[^\n]+\|[\n]?)+)/g,function(block){
-    // Only treat as table if it has at least 2 rows
-    if((block.match(/\n/g)||[]).length<1&&!/\n/.test(block))return block;
+  // Tables — match any line starting with | (trailing | optional)
+  t=t.replace(/((?:\|[^\n]+\n?)+)/g,function(block){
+    if((block.match(/\n/g)||[]).length<1)return block;
     return sprintRenderTable(block+'\n');
   });
   // Deal health banner
