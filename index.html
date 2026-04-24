@@ -1978,13 +1978,28 @@ function sprintRenderTable(block){
 function sprintRenderBody(raw){
   // Collapse 3+ consecutive newlines to max 2 before any processing
   var t=raw.replace(/\n{3,}/g,'\n\n');
-  // Pre-process: join table continuation lines (cell content that wraps to next line)
-  // A continuation line follows a | line but doesn't start with | or #
-  var prev='';
-  while(prev!==t){
-    prev=t;
-    t=t.replace(/([ \t]*\|[^\n]+)\n([^\n|#\-*\d][^\n]*)\n(?=[ \t]*\|)/g,'$1 $2\n');
-  }
+  // Pre-process: join table continuation lines using line-by-line approach
+  // Any non-blank, non-heading, non-bullet line following a | line is a wrapped cell — merge it back
+  (function(){
+    var lines=t.split('\n');var out=[];
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i];
+      var last=out.length?out[out.length-1]:'';
+      if(/^\s*\|/.test(last) &&           // previous line is a table row
+         !/^\s*\|/.test(line) &&           // this line doesn't start with |
+         line.trim()!=='' &&               // not blank
+         !/^\s*#{1,6}\s/.test(line) &&     // not a heading
+         !/^\s*[-*+]\s/.test(line) &&      // not a bullet
+         !/^\s*\d+\.\s/.test(line)){       // not a numbered list
+        // Append to previous table row — insert before closing |
+        var prev=out[out.length-1];
+        out[out.length-1]=prev.replace(/\|\s*$/,'')+' '+line.trim()+'|';
+      } else {
+        out.push(line);
+      }
+    }
+    t=out.join('\n');
+  })();
   t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // Tables — ensure trailing newline so last row is captured
   t=t.replace(/((?:\|[^\n]+\|[\n]?)+)/g,function(block){
