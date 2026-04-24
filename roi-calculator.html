@@ -794,12 +794,12 @@
   .pp2-brow:first-of-type { border-top: 1px solid #e2ddd7; }
   .pp2-brow.total-row {
     background: #1b3f39; color: #fff; border: none;
-    border-radius: 6px; margin-top: 4px; font-weight: 600; font-size: 14px;
+    border-radius: 6px; margin-top: 4px; font-weight: 700; font-size: 15px;
   }
   .pp2-brow-label { color: #5a5550; }
-  .pp2-brow.total-row .pp2-brow-label { color: #b1d9d1; }
+  .pp2-brow.total-row .pp2-brow-label { color: #b1d9d1; font-weight: 700; font-size: 15px; }
   .pp2-brow-val { font-weight: 600; color: #1a1714; }
-  .pp2-brow.total-row .pp2-brow-val { color: #fff; font-size: 16px; }
+  .pp2-brow.total-row .pp2-brow-val { color: #fff; font-size: 18px; font-weight: 800; }
 
   .pp2-assumptions {
     padding: 14px 18px; border: 1px solid #e2ddd7; border-radius: 10px;
@@ -932,7 +932,7 @@
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:11px;color:var(--mid-grey-2);">Prospect Logo</label>
         <div style="display:flex;align-items:center;gap:6px">
-          <div id="prospect-logo-preview" style="display:none;width:36px;height:36px;border-radius:4px;border:1px solid var(--light-grey-2);overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;">
+          <div id="prospect-logo-preview" style="display:none;width:40px;height:40px;border-radius:4px;border:1px solid var(--light-grey-2);overflow:hidden;background:#fff;align-items:center;justify-content:center;">
             <img id="prospect-logo-img" style="max-width:100%;max-height:100%;object-fit:contain;" />
           </div>
           <label for="prospect-logo-input" style="cursor:pointer;font-size:12px;padding:4px 10px;border:1px solid var(--light-grey-2);border-radius:6px;background:var(--near-white);color:var(--dark-grey);white-space:nowrap;">
@@ -1730,10 +1730,14 @@ function showProspectLogo(src){
   var preview = document.getElementById('prospect-logo-preview');
   var img     = document.getElementById('prospect-logo-img');
   var clear   = document.getElementById('prospect-logo-clear');
-  if(!src){ if(preview) preview.style.display='none'; if(clear) clear.style.display='none'; return; }
-  if(img)  img.src = src;
-  if(preview){ preview.style.display='flex'; }
-  if(clear)  clear.style.display='block';
+  if(!src){
+    if(preview) preview.style.display='none';
+    if(clear)   clear.style.display='none';
+    return;
+  }
+  if(img)     { img.src = src; }
+  if(preview) { preview.style.cssText += ';display:flex !important;'; }
+  if(clear)   { clear.style.display='inline'; }
 }
 
 function clearProspectLogo(){
@@ -1971,6 +1975,11 @@ window.addEventListener('beforeprint', function(){
   var dateStr  = (document.getElementById('quoteDate').value || '').trim();
   var termEl   = document.querySelector('input[name="contractTerm"]:checked');
   var is3yr    = !termEl || termEl.value === '3';
+  var prospectLogo = getProspectLogo();
+  ['pp1','pp2'].forEach(function(p){
+    var el=document.getElementById(p+'-prospect-logo');
+    if(el){ if(prospectLogo){el.src=prospectLogo;el.style.display='block';}else{el.style.display='none';} }
+  });
 
   // Helper to read a rendered output element's text
   function val(id){ var el=document.getElementById(id); return el ? el.textContent.trim() : ''; }
@@ -2151,9 +2160,11 @@ async function generatePPTX() {
   const OR  = 'E46136'; // orange
   const WH  = 'FFFFFF';
 
-  // Grab the embedded logo from the page
+  // Grab the Cognota brand logo from the page
   const logoEl = document.querySelector('.brand-mark img, .pp-brand img');
   const logoSrc = logoEl ? logoEl.src : null;
+  // Grab the prospect logo from localStorage
+  const prospectLogoSrc = getProspectLogo() || null;
 
   // ── Cognota brand colours (from actual Google Slides deck) ───
   const C_DARK   = '02150E'; // near-black green (text + dark elements)
@@ -2178,9 +2189,9 @@ async function generatePPTX() {
   // ── Stat box helper (matches template's 2×3 grid style) ──────
   function statBox(slide, x, y, w, h, bigVal, label, subLabel, bgColor){
     slide.addShape(pptx.ShapeType.roundRect, { x:x, y:y, w:w, h:h, fill:{color:bgColor}, line:{color:bgColor}, rectRadius:0.08 });
-    slide.addText(bigVal, { x:x+0.15, y:y+0.12, w:w-0.3, h:h*0.52, fontSize:36, bold:true, color:C_DARK, fontFace:'Vollkorn SemiBold', valign:'top', margin:0 });
-    slide.addText(label, { x:x+0.15, y:y+h*0.56, w:w-0.3, h:0.26, fontSize:10, bold:false, color:C_DARK, fontFace:'Proxima Nova', margin:0, wrap:true });
-    if(subLabel){ slide.addText(subLabel, { x:x+0.15, y:y+h*0.8, w:w-0.3, h:0.2, fontSize:8.5, color:C_DARK, fontFace:'Proxima Nova', italic:true, margin:0 }); }
+    slide.addText(bigVal, { x:x+0.12, y:y+0.1, w:w-0.24, h:h*0.5, fontSize:28, bold:true, color:C_DARK, fontFace:'Vollkorn SemiBold', valign:'middle', margin:0, shrinkText:true });
+    slide.addText(label, { x:x+0.12, y:y+h*0.54, w:w-0.24, h:0.3, fontSize:9.5, bold:false, color:C_DARK, fontFace:'Proxima Nova', margin:0, wrap:true });
+    if(subLabel){ slide.addText(subLabel, { x:x+0.12, y:y+h*0.8, w:w-0.24, h:0.2, fontSize:8, color:C_DARK, fontFace:'Proxima Nova', italic:true, margin:0 }); }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -2219,6 +2230,13 @@ async function generatePPTX() {
   s1.addText('Once Cognota is fully embedded and adopted', {
     x:0.4, y:4.02, w:4.8, h:0.22, fontSize:9.5, color:C_GREY, fontFace:'Proxima Nova', margin:0
   });
+
+  // Prospect logo — top right
+  if(prospectLogoSrc){
+    s1.addImage({ data:prospectLogoSrc, x:7.8, y:0.1, w:1.8, h:0.55 });
+  } else if(prospect){
+    s1.addText('Prepared for: '+prospect, { x:5.5, y:0.22, w:4.1, h:0.28, fontSize:10, color:C_GREY, align:'right', fontFace:'Proxima Nova', margin:0 });
+  }
 
   // Attribution bottom-left
   s1.addText('ROI calculated using ae-mission-control.pages.dev/roi-calculator.html', {
@@ -2266,6 +2284,11 @@ async function generatePPTX() {
   }
 
   // ── Two-column cards ─────────────────────────────────────────
+  // Prospect logo on slide 2
+  if(prospectLogoSrc){
+    s2.addImage({ data:prospectLogoSrc, x:7.8, y:0.1, w:1.8, h:0.55 });
+  }
+
   s2sectionLabel(s2,'YOUR TEAM & TOOLS',0.4,1.85,4.35);
   const iRows2=[
     ['Team members + managers',members+' + '+managers],
