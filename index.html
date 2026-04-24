@@ -2061,10 +2061,10 @@ function extractSprintScorecard(rawText){
   var sec2match=rawText.match(/## 2\.[^\n]*\n([\s\S]*?)(?=\n## \d+\.|$)/);
   if(!sec2match)return'';
   var sec2=sec2match[1];
-  // Find the table block (the summary scorecard, not detail tables)
-  var tableMatch=sec2.match(/((?:\|[^\n]+\|\n){3,})/);
+  // Match any table — rows starting with | (trailing | optional, newline optional)
+  var tableMatch=sec2.match(/((?:\|[^\n]+\n?){3,})/);
   if(!tableMatch)return'';
-  return sprintRenderTable(tableMatch[1]);
+  return sprintRenderTable(tableMatch[1]+'\n');
 }
 
 // Extract overall deal health status for badge
@@ -2089,8 +2089,7 @@ function buildSprintAccordion(oppId,rawText){
     }
     var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
     var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
-    // Section 2 (Vitals Scorecard) is shown in sticky header — skip in accordion
-    if(num==='2')return;
+    // Section 2 shown in accordion always; top scorecard is a bonus if extractable
     var secId='spasc-'+oppId+'-'+num;
     var open=num==='1';
     html+=
@@ -2146,10 +2145,6 @@ function openSprintInBrowser(oppId){
       }
       var num=m[1];var title=m[2].replace(/\*\*/g,'').trim();
       var body=part.replace(/^## \d+\.[^\n]*\n/,'').trim();
-      // Section 2: strip the summary scorecard table (shown at top already)
-      if(num==='2'){
-        body=body.replace(/^[ \t]*(?:\|[^\n]*\n){2,}/m,'').trim();
-      }
       if(!body)return; // skip empty sections
       html+=
         '<div class="section">'+
