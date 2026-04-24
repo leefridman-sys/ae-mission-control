@@ -1910,7 +1910,17 @@ Scoring 0–6: 0=No collaboration plan | 1=Co-created plan confirmed with Power 
 3–5 sentences: where deal stands, current stage, critical next move.
 
 ## 2. SPRINT Vitals Scorecard
-For each vital: score X/6, evidence from transcript, gaps/unconfirmed, recommended next sprint action. Show overall deal health.
+For each vital (Pain, Power, Vision, Value, Consensus): score X/6, evidence from transcript, gaps/unconfirmed, recommended next sprint action.
+
+Then at the END of this section, output a summary table in EXACTLY this format — every row on one line, no wrapping:
+| Vital | Score | Status |
+|-------|-------|--------|
+| Pain | X/6 | One concise line summarising deal health for this vital |
+| Power | X/6 | One concise line |
+| Vision | X/6 | One concise line |
+| Value | X/6 | One concise line |
+| Consensus | X/6 | One concise line |
+| **Overall** | **X/30** | **AMBER** — one-line deal health summary |
 
 ## 3. Paint the Pain
 Customer pain in their own language. Specific — business impact, operational friction, emotional weight. Sharp enough they'd say "yes, exactly."
@@ -2062,9 +2072,10 @@ function extractSprintScorecard(rawText){
   if(!sec2match)return'';
   var sec2=sec2match[1];
 
-  // Try explicit table first
-  var tableMatch=sec2.match(/((?:\|[^\n]+\n?){3,})/);
-  if(tableMatch) return sprintRenderTable(tableMatch[1]+'\n');
+  // Find the LAST table in section 2 (the summary scorecard, not the detail tables)
+  var allTables=[];var tRe=/((?:\|[^\n]+\n?){3,})/g;var tm;
+  while((tm=tRe.exec(sec2))!==null)allTables.push(tm[1]);
+  if(allTables.length) return sprintRenderTable(allTables[allTables.length-1]+'\n');
 
   // Fallback: parse scores + status from ### VITAL — Score: X/6 headings
   // Split section 2 into per-vital chunks
