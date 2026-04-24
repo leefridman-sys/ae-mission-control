@@ -2406,14 +2406,24 @@ function runSprintAnalysis(oppId){
     model:'claude-sonnet-4-6',max_tokens:6000,stream:false,
     system:SPRINT_PROMPT,
     messages:[{role:'user',content:'Analyze the following Gong call transcript(s) and produce the full SPRINT Selling deal intelligence brief.'+dealContext+'\n\n---\n\n'+transcript}]
-  })}).then(function(r){return r.json();}).then(function(res){
+  })}).then(function(r){
+    if(!r.ok){
+      return r.text().then(function(t){throw new Error('API error '+r.status+': '+t.slice(0,200));});
+    }
+    return r.json();
+  }).then(function(res){
     var text=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
-    if(!text){showToast('No response — try again');if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}return;}
+    if(!text){
+      var errMsg=res.error?res.error.message:'Empty response';
+      showToast('No response: '+errMsg);
+      if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}
+      return;
+    }
     saveSprintMeta(oppId,{analysis:text,savedAt:new Date().toISOString()});
     closeModal();openSprintAnalysis(oppId);
     if(_lastDeals.length)renderKanban(_lastDeals);
   }).catch(function(e){
-    showToast('Error: '+e.message);
+    alert('Sprint Analysis failed:\n\n'+e.message+'\n\nThis is usually a timeout — the transcript may be too long. Try splitting into one call at a time.');
     if(btn){btn.disabled=false;btn.innerHTML='<span>⚡</span><span>Run Sprint Analysis</span>';}
   });
 }
