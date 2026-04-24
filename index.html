@@ -2066,32 +2066,85 @@ function extractSprintScorecard(rawText){
   var tableMatch=sec2.match(/((?:\|[^\n]+\n?){3,})/);
   if(tableMatch) return sprintRenderTable(tableMatch[1]+'\n');
 
-  // Fallback: parse scores from ### VITAL — Score: X/6 headings
-  var rows=[];
-  var re=/###\s+[^#\n]*\b(PAIN|POWER|VISION|VALUE|CONSENSUS)\b[^#\n]*Score[:\s]+(\d+)\/(\d+)/gi;
-  var m;
-  while((m=re.exec(sec2))!==null){
-    var vital=m[1].charAt(0)+m[1].slice(1).toLowerCase();
-    var score=m[2]+'/'+m[3];
-    var pct=parseInt(m[2])/parseInt(m[3]);
-    var sc=pct>=0.67?{bg:'#d1fae5',fg:'#065f46'}:pct>=0.34?{bg:'#fef3c7',fg:'#92400e'}:{bg:'#fee2e2',fg:'#991b1b'};
-    rows.push('<tr><td style="padding:8px 14px;border:1px solid #e2ddd7;font-weight:600;background:#f9f7f4">'+vital+
-      '</td><td style="padding:8px 14px;border:1px solid #e2ddd7;text-align:center"><span style="font-weight:700;color:'+sc.fg+';background:'+sc.bg+';padding:2px 10px;border-radius:10px">'+score+'</span></td></tr>');
+  // Fallback: parse scores + status from ### VITAL — Score: X/6 headings
+  // Split section 2 into per-vital chunks
+  var vitalOrder=['PAIN','POWER','VISION','VALUE','CONSENSUS'];
+  var chunks={};
+  var chunkRe=/###\s+([^\n]*\b(?:PAIN|POWER|VISION|VALUE|CONSENSUS)\b[^\n]*)\n([\s\S]*?)(?=###|\n## |\n---+|$)/gi;
+  var cm;
+  while((cm=chunkRe.exec(sec2))!==null){
+    var heading=cm[1];var body=cm[2];
+    var vitalKey=null;
+    vitalOrder.forEach(function(v){if(heading.toUpperCase().indexOf(v)>-1)vitalKey=v;});
+    if(vitalKey)chunks[vitalKey]={heading:heading,body:body};
   }
-  if(!rows.length)return'';
+  if(!Object.keys(chunks).length)return'';
 
-  // Add overall deal health row if present
-  var healthM=sec2.match(/Overall Deal Health[:\s]+([A-Z]+)/i);
+  var rows=[];
+  vitalOrder.forEach(function(vitalKey){
+    var chunk=chunks[vitalKey];if(!chunk)return;
+    var heading=chunk.heading;var body=chunk.body;
+
+    // Extract score
+    var scoreM=heading.match(/Score[:\s]+(\d+)\/(\d+)/i);
+    if(!scoreM)scoreM=body.match(/Score[:\s]+(\d+)\/(\d+)/i);
+    var score=scoreM?scoreM[1]+'/'+scoreM[2]:'—';
+    var pct=scoreM?parseInt(scoreM[1])/parseInt(scoreM[2]):0.5;
+    var sc=pct>=0.67?{bg:'#d1fae5',fg:'#065f46'}:pct>=0.34?{bg:'#fef3c7',fg:'#92400e'}:{bg:'#fee2e2',fg:'#991b1b'};
+    var scorePill='<span style="font-weight:700;color:'+sc.fg+';background:'+sc.bg+';padding:2px 10px;border-radius:10px;white-space:nowrap">'+score+'</span>';
+
+    // Detect [UPDATED] in this vital's content
+    var updatedM=body.match(/\[UPDATED[^\]]*\]/gi);
+    var updatedBadge=updatedM?'<span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #93c5fd;margin-left:6px">'+updatedM[0]+'</span>':'';
+
+    // Extract status note — look for a "Current state" line, or first substantive bullet, or first sentence
+    var statusNote='';
+    // Try lines starting with - or bullet that describe status
+    var statusLines=body.match(/^[-•]\s+(?!\*\*Evidence|\*\*Gap|\*\*Next)[^\n]+/m);
+    if(statusLines){statusNote=statusLines[0].replace(/^[-•]\s+/,'').replace(/\[UPDATED[^\]]*\]/gi,'').trim();}
+    // Fallback: first sentence from body that's descriptive
+    if(!statusNote){
+      var firstLine=body.replace(/\*\*[^*]+\*\*:?\s*/g,'').replace(/\[UPDATED[^\]]*\]/gi,'').trim();
+      var firstSent=firstLine.match(/([^.\n]{20,80})/);
+      if(firstSent)statusNote=firstSent[1].trim();
+    }
+    // Cap length
+    if(statusNote.length>90)statusNote=statusNote.slice(0,88)+'…';
+
+    var vital=vitalKey.charAt(0)+vitalKey.slice(1).toLowerCase();
+    rows.push(
+      '<tr>'+
+        '<td style="padding:8px 14px;border:1px solid #e2ddd7;font-weight:700;background:#f9f7f4;white-space:nowrap">'+vital+updatedBadge+'</td>'+
+        '<td style="padding:8px 14px;border:1px solid #e2ddd7;text-align:center">'+scorePill+'</td>'+
+        '<td style="padding:8px 14px;border:1px solid #e2ddd7;font-size:13px;color:#5a5550">'+statusNote+'</td>'+
+      '</tr>'
+    );
+  });
+
+  // Overall deal health
+  var healthM=sec2.match(/Overall Deal Health[:\s]+([A-Z]+)([^\n]*)/i);
   if(healthM){
     var uc=healthM[1].toUpperCase();
     var hsc=uc==='GREEN'?{bg:'#d1fae5',fg:'#065f46'}:uc==='RED'?{bg:'#fee2e2',fg:'#991b1b'}:{bg:'#fef3c7',fg:'#92400e'};
-    rows.push('<tr><td style="padding:8px 14px;border:1px solid #e2ddd7;font-weight:700;background:#f9f7f4">Overall Deal Health</td>'+
-      '<td style="padding:8px 14px;border:1px solid #e2ddd7;text-align:center"><span style="font-weight:700;color:'+hsc.fg+';background:'+hsc.bg+';padding:3px 12px;border-radius:6px">'+healthM[1]+'</span></td></tr>');
+    var rest=(healthM[2]||'').replace(/^[\s—–-]+/,'').trim();
+    rows.push(
+      '<tr style="border-top:2px solid #e2ddd7">'+
+        '<td style="padding:10px 14px;border:1px solid #e2ddd7;font-weight:700;background:#f9f7f4" colspan="1">Overall Deal Health</td>'+
+        '<td style="padding:10px 14px;border:1px solid #e2ddd7;text-align:center">'+
+          '<span style="font-weight:700;color:'+hsc.fg+';background:'+hsc.bg+';padding:3px 12px;border-radius:6px">'+healthM[1]+'</span>'+
+        '</td>'+
+        '<td style="padding:10px 14px;border:1px solid #e2ddd7;font-size:13px;color:#5a5550">'+rest+'</td>'+
+      '</tr>'
+    );
   }
 
+  if(!rows.length)return'';
   return '<div style="overflow-x:auto;margin:4px 0"><table style="width:100%;border-collapse:collapse;font-size:14px">'+
-    '<tr><th style="padding:8px 14px;background:#2d5e54;color:#fff;text-align:left;border:1px solid #e2ddd7">Vital</th>'+
-    '<th style="padding:8px 14px;background:#2d5e54;color:#fff;text-align:center;border:1px solid #e2ddd7">Score</th></tr>'+
+    '<tr>'+
+      '<th style="padding:8px 14px;background:#2d5e54;color:#fff;text-align:left;border:1px solid #e2ddd7;width:100px">Vital</th>'+
+      '<th style="padding:8px 14px;background:#2d5e54;color:#fff;text-align:center;border:1px solid #e2ddd7;width:80px">Score</th>'+
+      '<th style="padding:8px 14px;background:#2d5e54;color:#fff;text-align:left;border:1px solid #e2ddd7">Status</th>'+
+    '</tr>'+
     rows.join('')+'</table></div>';
 }
 
