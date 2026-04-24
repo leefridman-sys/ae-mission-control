@@ -1979,21 +1979,26 @@ function sprintRenderBody(raw){
   // Collapse 3+ consecutive newlines to max 2 before any processing
   var t=raw.replace(/\n{3,}/g,'\n\n');
   // Pre-process: join table continuation lines using line-by-line approach
-  // Any non-blank, non-heading, non-bullet line following a | line is a wrapped cell — merge it back
   (function(){
     var lines=t.split('\n');var out=[];
     for(var i=0;i<lines.length;i++){
       var line=lines[i];
       var last=out.length?out[out.length-1]:'';
-      if(/^\s*\|/.test(last) &&           // previous line is a table row
-         !/^\s*\|/.test(line) &&           // this line doesn't start with |
-         line.trim()!=='' &&               // not blank
-         !/^\s*#{1,6}\s/.test(line) &&     // not a heading
-         !/^\s*[-*+]\s/.test(line) &&      // not a bullet
-         !/^\s*\d+\.\s/.test(line)){       // not a numbered list
-        // Append to previous table row — insert before closing |
+      var lastIsTable=/^\s*\|/.test(last);
+      var lineIsTable=/^\s*\|/.test(line);
+      var lineIsBlank=line.trim()==='';
+      var lineIsSpecial=/^\s*(?:#{1,6}\s|[-*+]\s|\d+\.\s)/.test(line);
+      if(lastIsTable&&!lineIsTable&&!lineIsBlank&&!lineIsSpecial){
         var prev=out[out.length-1];
-        out[out.length-1]=prev.replace(/\|\s*$/,'')+' '+line.trim()+'|';
+        var content=line.trim();
+        // If the previous row has an empty cell (| |), fill the first one
+        // This handles Claude outputting | Pain | | | on one line, solution on next
+        if(/\|\s*\|/.test(prev)){
+          out[out.length-1]=prev.replace(/\|\s*\|/,'| '+content+' |');
+        } else {
+          // Otherwise just extend the last cell
+          out[out.length-1]=prev.replace(/\|\s*$/,'')+' '+content+'|';
+        }
       } else {
         out.push(line);
       }
