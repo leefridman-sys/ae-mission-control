@@ -1440,6 +1440,7 @@ function renderOpportunityBrief(text,label,preserveChat){
         '</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           '<button class="btn-ghost btn-sm" onclick="saveOpportunityBrief(_currentBrief.text,_currentBrief.label)">💾 Save brief</button>'+
+          '<button class="btn-ghost btn-sm" onclick="navigator.clipboard.writeText(_currentBrief.text).then(function(){showToast(\'Brief copied to clipboard ✓\')}).catch(function(){showToast(\'Copy failed\')})">📋 Copy all</button>'+
           (emailText?'<button class="btn-ghost btn-sm" onclick="copyText('+JSON.stringify('Subject: '+emailText.split('\n')[0].replace(/^subject:\s*/i,'')+'\n\n'+emailText.split('\n').slice(1).join('\n').trim())+'">Copy email</button>':'')+
           (isGC()&&emailText?'<button class="btn-ghost btn-sm" onclick="saveBriefEmailDraft('+JSON.stringify(emailText)+')">Save to Gmail Drafts</button>':'')+
           '<button class="btn-ghost btn-sm" onclick="document.getElementById(\'opp-brief-output\').innerHTML=\'\'">Clear</button>'+
