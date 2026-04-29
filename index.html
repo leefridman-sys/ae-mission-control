@@ -1103,8 +1103,8 @@ function loadTools(){
     '<div id="tool-brief">'+buildOppBriefHTML()+'</div>'+
     '<div id="tool-roi" style="display:none">'+
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem">'+
-        '<button class="btn-ghost" onclick="openLatestCalc()" style="font-size:14px">↗ Open in new tab</button>'+
-        '<span style="font-size:13px;color:var(--muted)">Fill in the calculator, hit 💾 Save, then open a clean tab to walk prospects through.</span>'+
+        '<button class="btn-ghost" onclick="openLatestCalc()" style="font-size:14px">↗ New blank calculator</button>'+
+        '<span style="font-size:13px;color:var(--muted)">Opens a fresh calculator. Use the saved list below to reload a prospect\'s numbers.</span>'+
       '</div>'+
       '<iframe id="roi-iframe" src="/roi-calculator.html" style="width:100%;height:calc(100vh - 320px);border:none;border-radius:10px;background:#fff"></iframe>'+
       '<div style="margin-top:1rem">'+
@@ -1117,13 +1117,7 @@ function loadTools(){
 }
 
 function openLatestCalc(){
-  var snapshots=[];
-  try{snapshots=JSON.parse(localStorage.getItem('roi_calculator_snapshots')||'[]');}catch(e){}
-  if(snapshots.length){
-    window.open('/roi-calculator.html?snap='+encodeURIComponent(snapshots[0].id),'_blank');
-  } else {
-    window.open('/roi-calculator.html','_blank');
-  }
+  window.open('/roi-calculator.html','_blank');
 }
 
 function renderToolRoiSaved(){
