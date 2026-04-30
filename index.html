@@ -1506,17 +1506,20 @@ function buildExecBriefPage(b){
   var cognotaLogoSrc=EB_COGNOTA_LOGO||'';
   var platformSrc=EB_PLATFORM_IMG||'';
 
-  // Stacked dashboard — 3 DIFFERENT screens: Capacity (back), Projects (mid), Insights (front)
+  // Stacked dashboard — 3 DIFFERENT screens fanning from top-left, clipped cleanly
   var img2=EB_PLATFORM_IMG2||'';var img3=EB_PLATFORM_IMG3||'';
   var stackHtml=(platformSrc&&img2&&img3)?
-    '<div style="position:relative;width:250px;height:162px;flex-shrink:0;margin-left:8px">'+
-      '<div style="position:absolute;top:22px;left:24px;width:212px;height:132px;border-radius:5px;border:1px solid #d0d8d6;overflow:hidden;transform:rotate(-3deg);box-shadow:0 2px 8px rgba(0,0,0,.11);z-index:1">'+
+    '<div style="position:relative;width:248px;height:148px;flex-shrink:0;margin-left:8px;overflow:hidden">'+
+      // Back — Capacity, rotate from top-left corner
+      '<div style="position:absolute;top:4px;left:4px;width:210px;height:130px;border-radius:6px;border:1px solid #d4dedd;overflow:hidden;transform:rotate(4deg);transform-origin:top left;box-shadow:0 2px 6px rgba(0,0,0,.1);z-index:1">'+
         '<img src="'+img3+'" style="width:100%;height:100%;object-fit:cover;object-position:top left">'+
       '</div>'+
-      '<div style="position:absolute;top:11px;left:12px;width:212px;height:132px;border-radius:5px;border:1px solid #d0d8d6;overflow:hidden;transform:rotate(-1.2deg);box-shadow:0 2px 10px rgba(0,0,0,.13);z-index:2">'+
+      // Middle — Projects
+      '<div style="position:absolute;top:3px;left:3px;width:210px;height:130px;border-radius:6px;border:1px solid #d0d8d6;overflow:hidden;transform:rotate(2deg);transform-origin:top left;box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:2">'+
         '<img src="'+img2+'" style="width:100%;height:100%;object-fit:cover;object-position:top left">'+
       '</div>'+
-      '<div style="position:absolute;top:0;left:0;width:212px;height:132px;border-radius:5px;border:1px solid #c0d0cc;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:3">'+
+      // Front — Insights (straight)
+      '<div style="position:absolute;top:0;left:0;width:210px;height:130px;border-radius:6px;border:1px solid #c8d4d2;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.16);z-index:3">'+
         '<img src="'+platformSrc+'" style="width:100%;height:100%;object-fit:cover;object-position:top left">'+
       '</div>'+
     '</div>'
@@ -1567,7 +1570,7 @@ function buildExecBriefPage(b){
       ['<strong>Intake &amp; Prioritize</strong> — a single front door for every enablement request, with structured forms and automated routing.',
        '<strong>Plan &amp; Resource</strong> — program, project, and deliverable hierarchy with capacity tracking across teams.',
        '<strong>Collaborate &amp; Deliver</strong> — shared workspace for teams, stakeholders, SMEs, and vendors with built-in accountability.',
-       '<strong>Measure &amp; Report</strong> — program-level ROI tied to objectives like deal reg, time-to-value, and close rate for executive reporting.'
+       '<strong>Measure &amp; Report</strong> — program-level ROI tied to objectives for executive reporting.'
       ].map(function(item){
         return'<div style="border-left:2px solid '+EB_TEAL+';padding:2px 8px;font-size:11.5px;line-height:1.45;color:#333">'+item+'</div>';
       }).join('')+
