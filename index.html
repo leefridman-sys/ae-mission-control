@@ -1167,30 +1167,32 @@ const EB_TEAL='#327569';const EB_DARK='#1B3A36';const EB_LTEAL='#e8f3f1';
 
 const EB_PROMPT=`You are a strategic sales writer for Cognota — a Learning Operations platform for enterprise L&D teams.
 
-Given a Gong call transcript, produce a JSON object with exactly these fields. Be specific, use the prospect's own language where possible, and keep each piece tight and punchy.
+Given a Gong call transcript, produce a JSON object with exactly these fields. Be specific and use the prospect's own language where possible.
+
+CRITICAL TONE RULE for opportunity_boxes: Frame every heading and description as a FORWARD-LOOKING OPPORTUNITY or AREA FOR GROWTH — never as a criticism of the team's current state. The learning team is doing great work; Cognota helps them do it at a higher level. Think "where Cognota can accelerate maturity" not "what is broken". Use words like "Opportunity", "Potential", "Advancement", "Foundation", "Visibility" — never "broken", "no", "lacking", "missing", "failed".
 
 RETURN ONLY VALID JSON — no markdown fences, no explanation.
 
 {
   "intro": "One sentence starting 'Following [a/an X] with [Names]' summarising the conversation context and why this brief exists.",
   "department": "The prospect's team/function name (e.g. 'Sales Enablement', 'Learning & Development')",
-  "pain_boxes": [
-    {"title": "UPPERCASE 2-4 WORD TITLE", "body": "2-3 sentences describing this specific pain from the transcript."},
-    {"title": "UPPERCASE 2-4 WORD TITLE", "body": "2-3 sentences."},
-    {"title": "UPPERCASE 2-4 WORD TITLE", "body": "2-3 sentences."},
-    {"title": "UPPERCASE 2-4 WORD TITLE", "body": "2-3 sentences."}
+  "opportunity_boxes": [
+    {"title": "INTAKE CENTRALIZATION OPPORTUNITY", "body": "1-2 sentences framing this as a positive opportunity for the team — what becomes possible, not what is wrong today."},
+    {"title": "CAPACITY VISIBILITY POTENTIAL", "body": "1-2 sentences."},
+    {"title": "MEASUREMENT ADVANCEMENT", "body": "1-2 sentences."},
+    {"title": "STRATEGIC ALIGNMENT FOUNDATION", "body": "1-2 sentences."}
   ],
   "transformations": [
-    {"before": "Current state description", "highlight": "Key bold phrase", "after": "rest of the transformed future state"},
+    {"before": "How things work today (neutral, not critical)", "highlight": "Key future-state phrase", "after": "rest of what becomes possible"},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."}
   ],
-  "why_now": "2-3 sentences. Why this is the right moment to act — reference something specific from the conversation (a project, deadline, leadership moment, window of opportunity). Bold the most important phrase using **bold**.",
+  "why_now": "2-3 sentences. Why this is the right moment — reference something specific from the conversation (a project, merger, leadership moment, strategic window). Bold the most important phrase using **bold**. Forward-looking and energising, not fear-based.",
   "next_steps": [
-    {"title": "UPPERCASE NEXT STEP TITLE", "body": "2-3 sentences describing this concrete next step."},
-    {"title": "UPPERCASE NEXT STEP TITLE", "body": "2-3 sentences."}
+    {"title": "STEP TITLE", "body": "1-2 sentences on this concrete next step."},
+    {"title": "STEP TITLE", "body": "1-2 sentences."}
   ]
 }`;
 
@@ -1354,34 +1356,32 @@ function buildExecBriefPage(b){
   var dateStr=esc(b.date||'');
   var dept=esc(d.department||'Learning & Development');
 
-  // Pain boxes (2x2 grid)
-  var painHtml=(d.pain_boxes||[]).slice(0,4).map(function(p){
-    return'<div style="padding:14px 16px;background:#f8fafa;border-radius:4px">'+
-      '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:6px">'+esc(p.title)+'</div>'+
-      '<div style="font-size:13px;line-height:1.6;color:#333">'+esc(p.body)+'</div>'+
+  // Support both old key (pain_boxes) and new key (opportunity_boxes)
+  var oppBoxes=d.opportunity_boxes||d.pain_boxes||[];
+  var oppHtml=oppBoxes.slice(0,4).map(function(p){
+    return'<div style="padding:10px 12px;background:#f5f9f8;border-radius:3px">'+
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:4px;text-transform:uppercase">'+esc(p.title)+'</div>'+
+      '<div style="font-size:12px;line-height:1.55;color:#444">'+esc(p.body)+'</div>'+
     '</div>';
   }).join('');
 
-  // Transformation rows
   var transHtml=(d.transformations||[]).slice(0,5).map(function(t){
     return'<tr>'+
-      '<td style="padding:7px 10px;font-size:13px;color:#555;border-bottom:1px solid #e8f0ee;width:32%">'+esc(t.before)+'</td>'+
-      '<td style="padding:7px 10px;font-size:16px;color:'+EB_TEAL+';border-bottom:1px solid #e8f0ee;width:6%;text-align:center">→</td>'+
-      '<td style="padding:7px 10px;font-size:13px;border-bottom:1px solid #e8f0ee">'+
-        '<span style="background:'+EB_LTEAL+';padding:1px 6px;border-radius:3px;font-weight:700;color:'+EB_DARK+'">'+esc(t.highlight)+'</span>'+
+      '<td style="padding:5px 8px;font-size:12px;color:#555;border-bottom:1px solid #e8f0ee;width:32%">'+esc(t.before)+'</td>'+
+      '<td style="padding:5px 8px;font-size:14px;color:'+EB_TEAL+';border-bottom:1px solid #e8f0ee;width:5%;text-align:center">→</td>'+
+      '<td style="padding:5px 8px;font-size:12px;border-bottom:1px solid #e8f0ee">'+
+        '<span style="background:'+EB_LTEAL+';padding:1px 5px;border-radius:3px;font-weight:700;color:'+EB_DARK+'">'+esc(t.highlight)+'</span>'+
         ' <span style="color:#222">'+esc(t.after)+'</span>'+
       '</td>'+
     '</tr>';
   }).join('');
 
-  // Why now — bold **text**
   var whyNow=(d.why_now||'').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
 
-  // Next steps
   var nextHtml=(d.next_steps||[]).slice(0,2).map(function(n){
-    return'<div style="padding:14px 16px;background:#f8fafa;border-radius:4px;flex:1">'+
-      '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:6px">'+esc(n.title)+'</div>'+
-      '<div style="font-size:13px;line-height:1.6;color:#333">'+esc(n.body)+'</div>'+
+    return'<div style="padding:10px 12px;background:#f5f9f8;border-radius:3px;flex:1">'+
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:4px;text-transform:uppercase">'+esc(n.title)+'</div>'+
+      '<div style="font-size:12px;line-height:1.55;color:#444">'+esc(n.body)+'</div>'+
     '</div>';
   }).join('');
 
@@ -1389,84 +1389,88 @@ function buildExecBriefPage(b){
   var cognotaLogoSrc=EB_COGNOTA_LOGO||'';
   var platformSrc=EB_PLATFORM_IMG||'';
 
-  return'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'+
+  // CSS stacked screenshot: 3 panels cropped from 3×2 composite grid using background-position
+  var stackHtml=platformSrc?
+    '<div style="position:relative;width:260px;height:170px;flex-shrink:0">'+
+      // Back card — top-right panel (Tasks+Scheduling), rotated
+      '<div style="position:absolute;top:20px;left:20px;width:220px;height:130px;border-radius:5px;box-shadow:0 3px 12px rgba(0,0,0,.15);border:1px solid #dde;overflow:hidden;transform:rotate(-2deg);z-index:1;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:100% 0%"></div>'+
+      // Middle card — top-center panel (Budget+Capacity)
+      '<div style="position:absolute;top:10px;left:8px;width:220px;height:130px;border-radius:5px;box-shadow:0 3px 12px rgba(0,0,0,.15);border:1px solid #dde;overflow:hidden;transform:rotate(1.5deg);z-index:2;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:50% 0%"></div>'+
+      // Front card — top-left panel (Strategy+Intake)
+      '<div style="position:absolute;top:0;left:0;width:220px;height:130px;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.18);border:1px solid #dde;overflow:hidden;z-index:3;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:0% 0%"></div>'+
+    '</div>'
+  :'';
+
+  return'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<title>Cognota for '+company+'</title>'+
-    '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'+
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">'+
     '<style>'+
       '*{box-sizing:border-box;margin:0;padding:0;}'+
-      'body{font-family:"DM Sans",sans-serif;background:#fff;color:#1a1714;font-size:14px;}'+
-      '.page{max-width:900px;margin:0 auto;padding:36px 40px 48px;}'+
-      '@media print{body{background:#fff;}.page{padding:24px 32px;max-width:100%;}}'+
+      'html,body{height:100%;}'+
+      'body{font-family:"DM Sans",sans-serif;background:#fff;color:#1a1714;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
+      '.page{max-width:860px;margin:0 auto;padding:28px 36px 32px;}'+
+      '@page{margin:0.5in 0.6in;size:letter;}'+
+      '@media print{.page{padding:0;max-width:100%;}}'+
     '</style>'+
   '</head><body><div class="page">'+
 
   // ── HEADER ──
-  '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
-    '<div style="font-size:28px;font-weight:700;letter-spacing:-.5px">'+
-      'Cognota for <span style="background:'+EB_DARK+';color:#fff;padding:2px 10px;border-radius:3px">'+company+'</span>'+
+  '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+    '<div style="font-size:24px;font-weight:700;letter-spacing:-.3px">'+
+      'Cognota for <span style="background:'+EB_DARK+';color:#fff;padding:1px 9px;border-radius:3px">'+company+'</span>'+
     '</div>'+
-    '<div style="display:flex;align-items:center;gap:16px">'+
-      (cognotaLogoSrc?'<img src="'+cognotaLogoSrc+'" style="height:32px;object-fit:contain">':
-       '<span style="font-weight:700;color:'+EB_TEAL+'">COGNOTA</span>')+
-      (logoSrc?'<div style="width:1px;height:32px;background:#ddd"></div><img src="'+logoSrc+'" style="height:32px;object-fit:contain">':'')+
+    '<div style="display:flex;align-items:center;gap:14px">'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        (cognotaLogoSrc?'<img src="'+cognotaLogoSrc+'" style="height:24px;width:24px;object-fit:contain">':'')+
+        '<span style="font-weight:700;font-size:14px;color:'+EB_TEAL+';letter-spacing:.5px;font-family:DM Sans,sans-serif">COGNOTA</span>'+
+      '</div>'+
+      (logoSrc?'<div style="width:1px;height:26px;background:#ccc"></div><img src="'+logoSrc+'" style="height:26px;object-fit:contain">':'')+
     '</div>'+
   '</div>'+
-
-  // Sub-header
-  '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:'+EB_TEAL+';text-transform:uppercase;margin-bottom:4px">'+
-    'Strategic Brief'+(contact?' — Prepared for '+contact:'')+
-  '</div>'+
-  '<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #ddd;padding-bottom:12px;margin-bottom:14px">'+
-    '<div style="font-style:italic;font-size:13px;color:#555;max-width:480px">'+
-      'Cognota is a Learning Operations platform — the system of record for how enterprise learning &amp; enablement teams intake, prioritize, deliver, and measure their work.'+
-    '</div>'+
-    '<div style="text-align:right">'+
-      '<div style="font-weight:700;color:'+EB_DARK+';font-size:14px">'+dateStr+'</div>'+
-      '<div style="font-size:12px;color:#777">'+dept+'</div>'+
+  '<div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:'+EB_TEAL+';text-transform:uppercase;margin-bottom:3px">Strategic Brief'+(contact?' — Prepared for '+contact:'')+' </div>'+
+  '<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:10px">'+
+    '<div style="font-style:italic;font-size:12px;color:#555;max-width:500px;line-height:1.4">Cognota is a Learning Operations platform — the system of record for how enterprise learning &amp; enablement teams intake, prioritize, deliver, and measure their work.</div>'+
+    '<div style="text-align:right;flex-shrink:0;margin-left:12px">'+
+      '<div style="font-weight:700;color:'+EB_DARK+';font-size:12px">'+dateStr+'</div>'+
+      '<div style="font-size:11px;color:#777">'+dept+'</div>'+
     '</div>'+
   '</div>'+
 
   // Intro box
-  (d.intro?'<div style="border-left:3px solid '+EB_TEAL+';padding:10px 14px;background:#f8fafa;margin-bottom:18px;font-size:13.5px;line-height:1.6;color:#333">'+esc(d.intro)+'</div>':'')+
+  (d.intro?'<div style="border-left:3px solid '+EB_TEAL+';padding:7px 12px;background:#f5f9f8;margin-bottom:12px;font-size:12.5px;line-height:1.55;color:#333">'+esc(d.intro)+'</div>':'')+
 
   // ── WHAT COGNOTA DOES ──
-  '<div style="display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:20px;align-items:start">'+
-    '<div>'+
-      '<div style="font-size:16px;font-weight:700;margin-bottom:10px">What Cognota Does</div>'+
-      '<div style="display:flex;flex-direction:column;gap:8px">'+
-        ['<strong>Intake &amp; Prioritize</strong> — a single front door for every enablement request, with structured forms and automated routing.',
-         '<strong>Plan &amp; Resource</strong> — program, project, and deliverable hierarchy with capacity tracking across teams.',
-         '<strong>Collaborate &amp; Deliver</strong> — shared workspace for teams, stakeholders, SMEs, and vendors with built-in accountability.',
-         '<strong>Measure &amp; Report</strong> — program-level ROI tied to objectives like deal reg, time-to-value, and close rate for executive reporting.'
-        ].map(function(item){
-          return'<div style="border-left:3px solid '+EB_TEAL+';padding:4px 10px;font-size:13px;line-height:1.55;color:#333">'+item+'</div>';
-        }).join('')+
-      '</div>'+
+  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">What Cognota Does</div>'+
+  '<div style="display:flex;gap:16px;margin-bottom:14px;align-items:flex-start">'+
+    '<div style="flex:1;display:flex;flex-direction:column;gap:6px">'+
+      ['<strong>Intake &amp; Prioritize</strong> — a single front door for every enablement request, with structured forms and automated routing.',
+       '<strong>Plan &amp; Resource</strong> — program, project, and deliverable hierarchy with capacity tracking across teams.',
+       '<strong>Collaborate &amp; Deliver</strong> — shared workspace for teams, stakeholders, SMEs, and vendors with built-in accountability.',
+       '<strong>Measure &amp; Report</strong> — program-level ROI tied to objectives like deal reg, time-to-value, and close rate for executive reporting.'
+      ].map(function(item){
+        return'<div style="border-left:3px solid '+EB_TEAL+';padding:3px 9px;font-size:12px;line-height:1.5;color:#333">'+item+'</div>';
+      }).join('')+
     '</div>'+
-    (platformSrc?
-      '<div style="position:relative;height:200px;overflow:hidden;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.12)">'+
-        '<img src="'+platformSrc+'" style="width:100%;height:auto;object-fit:cover;object-position:top">'+
-      '</div>'
-    :'<div style="background:#f0f4f3;border-radius:6px;height:200px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px">Platform screenshot</div>')+
+    stackHtml+
   '</div>'+
 
   // ── WHERE COMPANY IS TODAY ──
-  '<div style="font-size:16px;font-weight:700;margin-bottom:10px">Where '+company+' Is Today</div>'+
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">'+painHtml+'</div>'+
+  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">Where '+company+' Is Today</div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">'+oppHtml+'</div>'+
 
   // ── WHAT CHANGES ──
-  '<div style="font-size:16px;font-weight:700;margin-bottom:10px">What Changes With Cognota</div>'+
-  '<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+transHtml+'</table>'+
+  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">What Changes With Cognota</div>'+
+  '<table style="width:100%;border-collapse:collapse;margin-bottom:12px">'+transHtml+'</table>'+
 
   // ── WHY NOW ──
-  '<div style="background:'+EB_DARK+';border-radius:6px;padding:16px 20px;margin-bottom:20px">'+
-    '<div style="font-size:14px;font-weight:700;color:#b1d9d1;margin-bottom:6px">Why Now — Not Later</div>'+
-    '<div style="font-size:13.5px;color:#e0eeec;line-height:1.65">'+whyNow+'</div>'+
+  '<div style="background:'+EB_DARK+';border-radius:4px;padding:10px 14px;margin-bottom:12px">'+
+    '<div style="font-size:12px;font-weight:700;color:#b1d9d1;margin-bottom:4px">Why Now — Not Later</div>'+
+    '<div style="font-size:12px;color:#ddf0ec;line-height:1.55">'+whyNow+'</div>'+
   '</div>'+
 
   // ── NEXT STEPS ──
-  '<div style="font-size:16px;font-weight:700;margin-bottom:10px">Recommended Next Steps</div>'+
-  '<div style="display:flex;gap:10px">'+nextHtml+'</div>'+
+  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">Recommended Next Steps</div>'+
+  '<div style="display:flex;gap:8px">'+nextHtml+'</div>'+
 
   '</div></body></html>';
 }
