@@ -1340,9 +1340,9 @@ function openExecBriefChat(id){
       '</div>'+
       '<button onclick="_ebChatHistory[\''+id+'\']=[];openExecBriefChat(\''+id+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);font-family:inherit">Clear</button>'+
     '</div>'+
-    (msgs.length?'<div id="eb-chat-thread" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem;background:var(--card)">'+bubbles()+'</div>':'')+
+    (msgs.length?'<div id="eb-chat-thread" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem;background:var(--card)">'+bubbles()+'</div>':'')+
     '<div style="display:flex;gap:8px;align-items:flex-end">'+
-      '<textarea id="eb-chat-input" rows="3" placeholder="e.g. The third transformation row mentions Excel and Smartsheet — make it more generic about manual tracking." style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font-size:14px;font-family:DM Sans,sans-serif;resize:none;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendExecBriefChat(\''+id+'\');event.preventDefault();}"></textarea>'+
+      '<textarea id="eb-chat-input" rows="5" placeholder="e.g. The third transformation row mentions Excel and Smartsheet — make it more generic about manual tracking." style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font-size:14px;font-family:DM Sans,sans-serif;resize:none;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendExecBriefChat(\''+id+'\');event.preventDefault();}"></textarea>'+
       '<button onclick="sendExecBriefChat(\''+id+'\')" class="btn" style="padding:9px 16px;align-self:flex-end;font-size:14px">Send<br><span style="font-size:11px;opacity:.7">⌘↵</span></button>'+
     '</div>'+
     '<div class="modal-footer" style="justify-content:space-between;margin-top:.75rem">'+
@@ -1350,7 +1350,7 @@ function openExecBriefChat(id){
       '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
     '</div>'
   );
-  document.getElementById('modal-box').style.maxWidth='560px';
+  document.getElementById('modal-box').style.maxWidth='680px';
   setTimeout(function(){var t=document.getElementById('eb-chat-thread');if(t)t.scrollTop=t.scrollHeight;},50);
 }
 
