@@ -1165,34 +1165,38 @@ const EB_COGNOTA_LOGO='data:image/webp;base64,UklGRhZpAABXRUJQVlA4WAoAAAAQAAAAzw
 
 const EB_TEAL='#327569';const EB_DARK='#1B3A36';const EB_LTEAL='#e8f3f1';
 
-const EB_PROMPT=`You are a strategic sales writer for Cognota — a Learning Operations platform for enterprise L&D teams.
+const EB_PROMPT=`You are a strategic sales writer for Cognota — a Learning Operations platform for enterprise L&D teams. Be EXTREMELY concise — this brief must fit on ONE PAGE.
 
-Given a Gong call transcript, produce a JSON object with exactly these fields. Be specific and use the prospect's own language where possible.
+TONE: Frame opportunities positively — never criticise the team. Think "where Cognota accelerates maturity", not "what is broken."
 
-CRITICAL TONE RULE for opportunity_boxes: Frame every heading and description as a FORWARD-LOOKING OPPORTUNITY or AREA FOR GROWTH — never as a criticism of the team's current state. The learning team is doing great work; Cognota helps them do it at a higher level. Think "where Cognota can accelerate maturity" not "what is broken". Use words like "Opportunity", "Potential", "Advancement", "Foundation", "Visibility" — never "broken", "no", "lacking", "missing", "failed".
+RETURN ONLY VALID JSON — no markdown, no explanation.
 
-RETURN ONLY VALID JSON — no markdown fences, no explanation.
+LENGTH RULES — strictly enforced:
+- opportunity_boxes.body: MAX 20 words each. One punchy sentence.
+- transformations: before = 4-6 words. highlight = 2-4 words. after = 4-7 words. ENTIRE ROW must fit on one line.
+- why_now: MAX 35 words. 2 short sentences. Bold one phrase with **bold**.
+- next_steps.body: MAX 25 words. Action-oriented fragment, not a full sentence. Start with a verb or noun. Cut every unnecessary word.
 
 {
-  "intro": "One sentence starting 'Following [a/an X] with [Names]' summarising the conversation context and why this brief exists.",
-  "department": "The prospect's team/function name (e.g. 'Sales Enablement', 'Learning & Development')",
+  "intro": "One sentence, max 30 words: 'Following [meeting type] with [Names], this brief summarises how Cognota accelerates [specific thing discussed].'",
+  "department": "Team name, e.g. 'Sales Enablement'",
   "opportunity_boxes": [
-    {"title": "INTAKE CENTRALIZATION OPPORTUNITY", "body": "1-2 sentences framing this as a positive opportunity for the team — what becomes possible, not what is wrong today."},
-    {"title": "CAPACITY VISIBILITY POTENTIAL", "body": "1-2 sentences."},
-    {"title": "MEASUREMENT ADVANCEMENT", "body": "1-2 sentences."},
-    {"title": "STRATEGIC ALIGNMENT FOUNDATION", "body": "1-2 sentences."}
+    {"title": "INTAKE CENTRALIZATION", "body": "Max 20 words — one punchy sentence on the opportunity."},
+    {"title": "CAPACITY VISIBILITY", "body": "Max 20 words."},
+    {"title": "MEASUREMENT ADVANCEMENT", "body": "Max 20 words."},
+    {"title": "STRATEGIC ALIGNMENT", "body": "Max 20 words."}
   ],
   "transformations": [
-    {"before": "How things work today (neutral, not critical)", "highlight": "Key future-state phrase", "after": "rest of what becomes possible"},
+    {"before": "4-6 word current state", "highlight": "2-4 word outcome", "after": "4-7 word future state"},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."},
     {"before": "...", "highlight": "...", "after": "..."}
   ],
-  "why_now": "2-3 sentences. Why this is the right moment — reference something specific from the conversation (a project, merger, leadership moment, strategic window). Bold the most important phrase using **bold**. Forward-looking and energising, not fear-based.",
+  "why_now": "Max 35 words. Reference one specific thing from the conversation. Bold the key phrase with **bold**.",
   "next_steps": [
-    {"title": "STEP TITLE", "body": "1-2 sentences on this concrete next step."},
-    {"title": "STEP TITLE", "body": "1-2 sentences."}
+    {"title": "NEXT STEP TITLE", "body": "Max 25 words. Action fragment. Example: 'Platform demo with [Names] covering intake, capacity, and measurement — validate fit against [specific challenge].'"},
+    {"title": "NEXT STEP TITLE", "body": "Max 25 words. Action fragment."}
   ]
 }`;
 
@@ -1359,17 +1363,17 @@ function buildExecBriefPage(b){
   // Support both old key (pain_boxes) and new key (opportunity_boxes)
   var oppBoxes=d.opportunity_boxes||d.pain_boxes||[];
   var oppHtml=oppBoxes.slice(0,4).map(function(p){
-    return'<div style="padding:10px 12px;background:#f5f9f8;border-radius:3px">'+
-      '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:4px;text-transform:uppercase">'+esc(p.title)+'</div>'+
-      '<div style="font-size:12px;line-height:1.55;color:#444">'+esc(p.body)+'</div>'+
+    return'<div style="padding:7px 10px;background:#f5f9f8;border-radius:3px">'+
+      '<div style="font-size:9.5px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:3px;text-transform:uppercase">'+esc(p.title)+'</div>'+
+      '<div style="font-size:11.5px;line-height:1.45;color:#444">'+esc(p.body)+'</div>'+
     '</div>';
   }).join('');
 
   var transHtml=(d.transformations||[]).slice(0,5).map(function(t){
     return'<tr>'+
-      '<td style="padding:5px 8px;font-size:12px;color:#555;border-bottom:1px solid #e8f0ee;width:32%">'+esc(t.before)+'</td>'+
-      '<td style="padding:5px 8px;font-size:14px;color:'+EB_TEAL+';border-bottom:1px solid #e8f0ee;width:5%;text-align:center">→</td>'+
-      '<td style="padding:5px 8px;font-size:12px;border-bottom:1px solid #e8f0ee">'+
+      '<td style="padding:4px 8px;font-size:11.5px;color:#555;border-bottom:1px solid #e8f0ee;width:30%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">'+esc(t.before)+'</td>'+
+      '<td style="padding:4px 6px;font-size:13px;color:'+EB_TEAL+';border-bottom:1px solid #e8f0ee;width:4%;text-align:center">→</td>'+
+      '<td style="padding:4px 8px;font-size:11.5px;border-bottom:1px solid #e8f0ee;white-space:nowrap;overflow:hidden">'+
         '<span style="background:'+EB_LTEAL+';padding:1px 5px;border-radius:3px;font-weight:700;color:'+EB_DARK+'">'+esc(t.highlight)+'</span>'+
         ' <span style="color:#222">'+esc(t.after)+'</span>'+
       '</td>'+
@@ -1379,9 +1383,9 @@ function buildExecBriefPage(b){
   var whyNow=(d.why_now||'').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
 
   var nextHtml=(d.next_steps||[]).slice(0,2).map(function(n){
-    return'<div style="padding:10px 12px;background:#f5f9f8;border-radius:3px;flex:1">'+
-      '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:4px;text-transform:uppercase">'+esc(n.title)+'</div>'+
-      '<div style="font-size:12px;line-height:1.55;color:#444">'+esc(n.body)+'</div>'+
+    return'<div style="padding:7px 10px;background:#f5f9f8;border-radius:3px;flex:1">'+
+      '<div style="font-size:9.5px;font-weight:700;letter-spacing:.08em;color:'+EB_TEAL+';margin-bottom:3px;text-transform:uppercase">'+esc(n.title)+'</div>'+
+      '<div style="font-size:11.5px;line-height:1.45;color:#444">'+esc(n.body)+'</div>'+
     '</div>';
   }).join('');
 
@@ -1389,15 +1393,18 @@ function buildExecBriefPage(b){
   var cognotaLogoSrc=EB_COGNOTA_LOGO||'';
   var platformSrc=EB_PLATFORM_IMG||'';
 
-  // CSS stacked screenshot: 3 panels cropped from 3×2 composite grid using background-position
+  // Screenshot: stacked cards showing top half of composite (3 panels)
   var stackHtml=platformSrc?
-    '<div style="position:relative;width:260px;height:170px;flex-shrink:0">'+
-      // Back card — top-right panel (Tasks+Scheduling), rotated
-      '<div style="position:absolute;top:20px;left:20px;width:220px;height:130px;border-radius:5px;box-shadow:0 3px 12px rgba(0,0,0,.15);border:1px solid #dde;overflow:hidden;transform:rotate(-2deg);z-index:1;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:100% 0%"></div>'+
-      // Middle card — top-center panel (Budget+Capacity)
-      '<div style="position:absolute;top:10px;left:8px;width:220px;height:130px;border-radius:5px;box-shadow:0 3px 12px rgba(0,0,0,.15);border:1px solid #dde;overflow:hidden;transform:rotate(1.5deg);z-index:2;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:50% 0%"></div>'+
-      // Front card — top-left panel (Strategy+Intake)
-      '<div style="position:absolute;top:0;left:0;width:220px;height:130px;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.18);border:1px solid #dde;overflow:hidden;z-index:3;background-image:url(\''+platformSrc+'\');background-size:300% 200%;background-position:0% 0%"></div>'+
+    '<div style="position:relative;width:240px;height:155px;flex-shrink:0;margin-left:4px">'+
+      '<div style="position:absolute;top:18px;right:0;width:200px;height:118px;border-radius:5px;border:1px solid #d0d8d6;overflow:hidden;transform:rotate(-2.5deg);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:1">'+
+        '<img src="'+platformSrc+'" style="width:300%;height:auto;margin-left:-200%;margin-top:-1%;object-fit:cover">'+
+      '</div>'+
+      '<div style="position:absolute;top:8px;right:12px;width:200px;height:118px;border-radius:5px;border:1px solid #d0d8d6;overflow:hidden;transform:rotate(1deg);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:2">'+
+        '<img src="'+platformSrc+'" style="width:300%;height:auto;margin-left:-100%;margin-top:-1%;object-fit:cover">'+
+      '</div>'+
+      '<div style="position:absolute;top:0;right:20px;width:200px;height:118px;border-radius:5px;border:1px solid #c8d4d2;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.16);z-index:3">'+
+        '<img src="'+platformSrc+'" style="width:300%;height:auto;margin-top:-1%;object-fit:cover">'+
+      '</div>'+
     '</div>'
   :'';
 
@@ -1440,37 +1447,37 @@ function buildExecBriefPage(b){
   (d.intro?'<div style="border-left:3px solid '+EB_TEAL+';padding:7px 12px;background:#f5f9f8;margin-bottom:12px;font-size:12.5px;line-height:1.55;color:#333">'+esc(d.intro)+'</div>':'')+
 
   // ── WHAT COGNOTA DOES ──
-  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">What Cognota Does</div>'+
-  '<div style="display:flex;gap:16px;margin-bottom:14px;align-items:flex-start">'+
-    '<div style="flex:1;display:flex;flex-direction:column;gap:6px">'+
+  '<div style="font-size:13px;font-weight:700;margin-bottom:5px">What Cognota Does</div>'+
+  '<div style="display:flex;gap:14px;margin-bottom:10px;align-items:flex-start">'+
+    '<div style="flex:1;display:flex;flex-direction:column;gap:4px">'+
       ['<strong>Intake &amp; Prioritize</strong> — a single front door for every enablement request, with structured forms and automated routing.',
        '<strong>Plan &amp; Resource</strong> — program, project, and deliverable hierarchy with capacity tracking across teams.',
        '<strong>Collaborate &amp; Deliver</strong> — shared workspace for teams, stakeholders, SMEs, and vendors with built-in accountability.',
        '<strong>Measure &amp; Report</strong> — program-level ROI tied to objectives like deal reg, time-to-value, and close rate for executive reporting.'
       ].map(function(item){
-        return'<div style="border-left:3px solid '+EB_TEAL+';padding:3px 9px;font-size:12px;line-height:1.5;color:#333">'+item+'</div>';
+        return'<div style="border-left:2px solid '+EB_TEAL+';padding:2px 8px;font-size:11.5px;line-height:1.45;color:#333">'+item+'</div>';
       }).join('')+
     '</div>'+
     stackHtml+
   '</div>'+
 
   // ── WHERE COMPANY IS TODAY ──
-  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">Where '+company+' Is Today</div>'+
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">'+oppHtml+'</div>'+
+  '<div style="font-size:13px;font-weight:700;margin-bottom:5px">Where '+company+' Is Today</div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px">'+oppHtml+'</div>'+
 
   // ── WHAT CHANGES ──
-  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">What Changes With Cognota</div>'+
-  '<table style="width:100%;border-collapse:collapse;margin-bottom:12px">'+transHtml+'</table>'+
+  '<div style="font-size:13px;font-weight:700;margin-bottom:5px">What Changes With Cognota</div>'+
+  '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;table-layout:fixed">'+transHtml+'</table>'+
 
   // ── WHY NOW ──
-  '<div style="background:'+EB_DARK+';border-radius:4px;padding:10px 14px;margin-bottom:12px">'+
-    '<div style="font-size:12px;font-weight:700;color:#b1d9d1;margin-bottom:4px">Why Now — Not Later</div>'+
-    '<div style="font-size:12px;color:#ddf0ec;line-height:1.55">'+whyNow+'</div>'+
+  '<div style="background:'+EB_DARK+';border-radius:4px;padding:8px 13px;margin-bottom:10px">'+
+    '<div style="font-size:11.5px;font-weight:700;color:#b1d9d1;margin-bottom:3px">Why Now — Not Later</div>'+
+    '<div style="font-size:11.5px;color:#ddf0ec;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+whyNow+'</div>'+
   '</div>'+
 
   // ── NEXT STEPS ──
-  '<div style="font-size:14px;font-weight:700;margin-bottom:7px">Recommended Next Steps</div>'+
-  '<div style="display:flex;gap:8px">'+nextHtml+'</div>'+
+  '<div style="font-size:13px;font-weight:700;margin-bottom:5px">Recommended Next Steps</div>'+
+  '<div style="display:flex;gap:7px">'+nextHtml+'</div>'+
 
   '</div></body></html>';
 }
