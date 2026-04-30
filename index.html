@@ -1332,33 +1332,25 @@ function openExecBriefChat(id){
     }).join('');
   }
 
-  // Show a compact summary of current data for reference
-  var d=b.data;
-  var summary='<div style="font-size:12px;color:var(--muted);line-height:1.5;background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:.75rem">'+
-    '<strong style="color:var(--text)">Current brief: '+esc(b.company)+'</strong><br>'+
-    '<em>Opportunity boxes:</em> '+(d.opportunity_boxes||d.pain_boxes||[]).map(function(p){return esc(p.title);}).join(', ')+'<br>'+
-    '<em>Transformations:</em> '+(d.transformations||[]).slice(0,3).map(function(t){return esc(t.before)+'→'+esc(t.highlight);}).join('; ')+'…<br>'+
-    '<em>Next steps:</em> '+(d.next_steps||[]).map(function(n){return esc(n.title);}).join(', ')+
-  '</div>';
-
   modal(
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'+
-      '<div><div style="font-size:17px;font-weight:600">✎ Refine Brief — '+esc(b.company)+'</div>'+
-      '<div style="font-size:12px;color:var(--muted)">Tell me exactly what to change. I\'ll update only that part.</div></div>'+
-      '<button onclick="_ebChatHistory[\''+id+'\']=[];openExecBriefChat(\''+id+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);font-family:inherit">Clear chat</button>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">'+
+      '<div>'+
+        '<div style="font-size:17px;font-weight:600">✎ Refine — '+esc(b.company)+'</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px">Tell me what to change. I\'ll update only that part.</div>'+
+      '</div>'+
+      '<button onclick="_ebChatHistory[\''+id+'\']=[];openExecBriefChat(\''+id+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);font-family:inherit">Clear</button>'+
     '</div>'+
-    summary+
-    '<div id="eb-chat-thread" style="min-height:120px;max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem;background:var(--card)">'+bubbles()+'</div>'+
+    (msgs.length?'<div id="eb-chat-thread" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem;background:var(--card)">'+bubbles()+'</div>':'')+
     '<div style="display:flex;gap:8px;align-items:flex-end">'+
-      '<textarea id="eb-chat-input" rows="2" placeholder="e.g. \'The third transformation row mentions Excel and Smartsheet — Maura didn\'t say that. Make it more generic about manual tracking.\'" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:14px;font-family:DM Sans,sans-serif;resize:none;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendExecBriefChat(\''+id+'\');event.preventDefault();}"></textarea>'+
-      '<button onclick="sendExecBriefChat(\''+id+'\')" class="btn" style="padding:8px 14px;align-self:flex-end;font-size:14px">Send<br><span style="font-size:11px;opacity:.7">⌘↵</span></button>'+
+      '<textarea id="eb-chat-input" rows="3" placeholder="e.g. The third transformation row mentions Excel and Smartsheet — make it more generic about manual tracking." style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font-size:14px;font-family:DM Sans,sans-serif;resize:none;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendExecBriefChat(\''+id+'\');event.preventDefault();}"></textarea>'+
+      '<button onclick="sendExecBriefChat(\''+id+'\')" class="btn" style="padding:9px 16px;align-self:flex-end;font-size:14px">Send<br><span style="font-size:11px;opacity:.7">⌘↵</span></button>'+
     '</div>'+
-    '<div class="modal-footer" style="justify-content:space-between;margin-top:.5rem">'+
+    '<div class="modal-footer" style="justify-content:space-between;margin-top:.75rem">'+
       '<button class="btn-ghost btn-sm" onclick="openExecBriefInBrowser(\''+id+'\')" style="font-size:13px">Open updated brief ↗</button>'+
       '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
     '</div>'
   );
-  document.getElementById('modal-box').style.maxWidth='680px';
+  document.getElementById('modal-box').style.maxWidth='560px';
   setTimeout(function(){var t=document.getElementById('eb-chat-thread');if(t)t.scrollTop=t.scrollHeight;},50);
 }
 
