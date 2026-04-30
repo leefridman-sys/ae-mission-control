@@ -1303,6 +1303,7 @@ function renderSavedExecBriefs(){
         '<div style="font-weight:600;font-size:14px">'+esc(b.company)+'</div>'+
         '<div style="font-size:12px;color:var(--muted)">'+esc(b.savedAt||'')+'</div>'+
       '</div>'+
+      '<button class="btn-ghost btn-sm" onclick="openExecBriefChat(\''+b.id+'\')" style="font-size:13px">✎ Refine</button>'+
       '<button class="btn-ghost btn-sm" onclick="openExecBriefInBrowser(\''+b.id+'\')" style="font-size:13px">Open ↗</button>'+
       '<button onclick="deleteExecBrief(\''+b.id+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px 6px;">✕</button>'+
     '</div>';
@@ -1311,6 +1312,116 @@ function renderSavedExecBriefs(){
 function deleteExecBrief(id){
   saveExecBriefs(loadSavedExecBriefs().filter(function(b){return b.id!==id;}));
   renderSavedExecBriefs();
+}
+
+// ── Exec Brief Refine Chat ────────────────────────────────────
+var _ebChatHistory={};
+
+function openExecBriefChat(id){
+  var briefs=loadSavedExecBriefs();
+  var b=briefs.find(function(x){return x.id===id;});
+  if(!b)return;
+  _ebChatHistory[id]=_ebChatHistory[id]||[];
+  var msgs=_ebChatHistory[id];
+
+  function bubbles(){
+    if(!msgs.length)return'<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:14px">Tell me what to change — be specific about which section and what\'s wrong.</div>';
+    return msgs.map(function(m){
+      var isUser=m.role==='user';
+      return'<div style="display:flex;flex-direction:'+(isUser?'row-reverse':'row')+';gap:8px;margin-bottom:10px;align-items:flex-start">'+
+        '<div style="width:26px;height:26px;border-radius:50%;background:'+(isUser?'var(--accent2)':'var(--bg)')+';border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">'+(isUser?'L':'✦')+'</div>'+
+        '<div style="max-width:82%;background:'+(isUser?'var(--accent2)':'var(--bg)')+';color:'+(isUser?'#fff':'var(--text)')+';border:1px solid '+(isUser?'transparent':'var(--border)')+';border-radius:10px;padding:.5rem .8rem;font-size:14px;line-height:1.55">'+esc(m.content)+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Show a compact summary of current data for reference
+  var d=b.data;
+  var summary='<div style="font-size:12px;color:var(--muted);line-height:1.5;background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:.75rem">'+
+    '<strong style="color:var(--text)">Current brief: '+esc(b.company)+'</strong><br>'+
+    '<em>Opportunity boxes:</em> '+(d.opportunity_boxes||d.pain_boxes||[]).map(function(p){return esc(p.title);}).join(', ')+'<br>'+
+    '<em>Transformations:</em> '+(d.transformations||[]).slice(0,3).map(function(t){return esc(t.before)+'→'+esc(t.highlight);}).join('; ')+'…<br>'+
+    '<em>Next steps:</em> '+(d.next_steps||[]).map(function(n){return esc(n.title);}).join(', ')+
+  '</div>';
+
+  modal(
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'+
+      '<div><div style="font-size:17px;font-weight:600">✎ Refine Brief — '+esc(b.company)+'</div>'+
+      '<div style="font-size:12px;color:var(--muted)">Tell me exactly what to change. I\'ll update only that part.</div></div>'+
+      '<button onclick="_ebChatHistory[\''+id+'\']=[];openExecBriefChat(\''+id+'\')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);font-family:inherit">Clear chat</button>'+
+    '</div>'+
+    summary+
+    '<div id="eb-chat-thread" style="min-height:120px;max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.75rem;background:var(--card)">'+bubbles()+'</div>'+
+    '<div style="display:flex;gap:8px;align-items:flex-end">'+
+      '<textarea id="eb-chat-input" rows="2" placeholder="e.g. \'The third transformation row mentions Excel and Smartsheet — Maura didn\'t say that. Make it more generic about manual tracking.\'" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:14px;font-family:DM Sans,sans-serif;resize:none;background:var(--bg);color:var(--text)" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){sendExecBriefChat(\''+id+'\');event.preventDefault();}"></textarea>'+
+      '<button onclick="sendExecBriefChat(\''+id+'\')" class="btn" style="padding:8px 14px;align-self:flex-end;font-size:14px">Send<br><span style="font-size:11px;opacity:.7">⌘↵</span></button>'+
+    '</div>'+
+    '<div class="modal-footer" style="justify-content:space-between;margin-top:.5rem">'+
+      '<button class="btn-ghost btn-sm" onclick="openExecBriefInBrowser(\''+id+'\')" style="font-size:13px">Open updated brief ↗</button>'+
+      '<button class="btn-ghost" onclick="closeModal()">Close</button>'+
+    '</div>'
+  );
+  document.getElementById('modal-box').style.maxWidth='680px';
+  setTimeout(function(){var t=document.getElementById('eb-chat-thread');if(t)t.scrollTop=t.scrollHeight;},50);
+}
+
+function sendExecBriefChat(id){
+  var input=document.getElementById('eb-chat-input');
+  if(!input)return;
+  var userMsg=input.value.trim();
+  if(!userMsg)return;
+  input.value='';
+
+  var briefs=loadSavedExecBriefs();
+  var b=briefs.find(function(x){return x.id===id;});
+  if(!b)return;
+
+  _ebChatHistory[id]=_ebChatHistory[id]||[];
+  _ebChatHistory[id].push({role:'user',content:userMsg});
+
+  // Show user bubble immediately
+  var thread=document.getElementById('eb-chat-thread');
+  if(thread){
+    var ub=document.createElement('div');
+    ub.style.cssText='display:flex;flex-direction:row-reverse;gap:8px;margin-bottom:10px;align-items:flex-start';
+    ub.innerHTML='<div style="width:26px;height:26px;border-radius:50%;background:var(--accent2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">L</div><div style="max-width:82%;background:var(--accent2);color:#fff;border-radius:10px;padding:.5rem .8rem;font-size:14px;line-height:1.55">'+esc(userMsg)+'</div>';
+    thread.appendChild(ub);
+    var thinking=document.createElement('div');
+    thinking.id='eb-thinking';
+    thinking.style.cssText='display:flex;gap:8px;margin-bottom:10px;align-items:flex-start';
+    thinking.innerHTML='<div style="width:26px;height:26px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px">✦</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.5rem .8rem;font-size:14px;color:var(--muted)">Updating brief…</div>';
+    thread.appendChild(thinking);
+    thread.scrollTop=thread.scrollHeight;
+  }
+
+  var systemPrompt='You are editing a Cognota executive brief for '+esc(b.company)+'. The user will describe what to change. Make ONLY the requested change — leave everything else exactly as-is.\n\nCURRENT BRIEF JSON:\n'+JSON.stringify(b.data,null,2)+'\n\nReturn the COMPLETE updated JSON object with the change applied. RETURN ONLY VALID JSON — no explanation, no markdown.';
+
+  var messages=_ebChatHistory[id].map(function(m){return{role:m.role,content:m.content};});
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:2000,stream:false,
+    system:systemPrompt,
+    messages:messages
+  })}).then(function(r){return r.json();}).then(function(res){
+    var raw=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
+    var thinkEl=document.getElementById('eb-thinking');if(thinkEl)thinkEl.remove();
+
+    var updated=null;
+    try{updated=JSON.parse(raw);}catch(e){var m=raw.match(/\{[\s\S]*\}/);if(m)try{updated=JSON.parse(m[0]);}catch(e2){}}
+
+    if(updated){
+      b.data=updated;
+      saveExecBriefs(briefs);
+      _ebChatHistory[id].push({role:'assistant',content:'Done — brief updated. Click "Open updated brief ↗" to see the changes.'});
+    } else {
+      _ebChatHistory[id].push({role:'assistant',content:'I had trouble parsing the response. Try rephrasing your request.'});
+    }
+    // Re-render chat
+    openExecBriefChat(id);
+  }).catch(function(e){
+    var thinkEl=document.getElementById('eb-thinking');if(thinkEl)thinkEl.remove();
+    showToast('Error: '+e.message);
+  });
 }
 
 // ── Generate ──────────────────────────────────────────────────
