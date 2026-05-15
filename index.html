@@ -1607,15 +1607,16 @@ function buildExecBriefPage(b){
       '@media print{'+
         '.page{padding:0;max-width:100%;}'+
         // Flatten the fanned dashboard stack for clean print:
-        // shrink parent to match the front layer (so there is no leftover frame),
-        // hide the two rotated back layers, and strip every visual decoration
-        // from the front layer so only the dashboard screenshot itself renders.
-        '.eb-stack{width:210px !important;height:130px !important;overflow:visible !important;background:transparent !important;box-shadow:none !important;}'+
+        // - shrink parent and front layer to the source image's aspect ratio (1.81:1)
+        //   so the full dashboard renders without cropping or letterboxing
+        // - hide the two rotated back layers
+        // - strip every visual decoration so only the screenshot itself renders
+        '.eb-stack{width:236px !important;height:130px !important;overflow:visible !important;background:transparent !important;box-shadow:none !important;}'+
         '.eb-stack > div{box-shadow:none !important;border:none !important;transform:none !important;border-radius:4px !important;}'+
         '.eb-stack > div:nth-child(1),'+
         '.eb-stack > div:nth-child(2){display:none !important;}'+
-        '.eb-stack > div:nth-child(3){position:static !important;width:210px !important;height:130px !important;}'+
-        '.eb-stack > div:nth-child(3) img{display:block !important;}'+
+        '.eb-stack > div:nth-child(3){position:static !important;width:236px !important;height:130px !important;}'+
+        '.eb-stack > div:nth-child(3) img{display:block !important;object-fit:contain !important;object-position:center !important;}'+
       '}'+
     '</style>'+
   '</head><body><div class="page">'+
