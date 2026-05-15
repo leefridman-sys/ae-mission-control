@@ -1606,17 +1606,13 @@ function buildExecBriefPage(b){
       '@page{margin:0.5in 0.6in;size:letter;}'+
       '@media print{'+
         '.page{padding:0;max-width:100%;}'+
-        // Flatten the fanned dashboard stack for clean print:
-        // - shrink parent and front layer to the source image's aspect ratio (1.81:1)
-        //   so the full dashboard renders without cropping or letterboxing
-        // - hide the two rotated back layers
-        // - strip every visual decoration so only the screenshot itself renders
-        '.eb-stack{width:236px !important;height:130px !important;overflow:visible !important;background:transparent !important;box-shadow:none !important;}'+
-        '.eb-stack > div{box-shadow:none !important;border:none !important;transform:none !important;border-radius:4px !important;}'+
-        '.eb-stack > div:nth-child(1),'+
-        '.eb-stack > div:nth-child(2){display:none !important;}'+
-        '.eb-stack > div:nth-child(3){position:static !important;width:236px !important;height:130px !important;}'+
-        '.eb-stack > div:nth-child(3) img{display:block !important;object-fit:contain !important;object-position:center !important;}'+
+        // Keep the fanned three-layer stack in print exactly as it appears onscreen.
+        // The only print-specific change: lift overflow:hidden on the parent so the
+        // rotated back layers aren\'t clipped by the parent bounds (which was causing
+        // the strange "shadow box" framing the user saw).
+        '.eb-stack{overflow:visible !important;}'+
+        // Force print engines to honour exact colors/shadows for the fanned look.
+        '.eb-stack > div{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}'+
       '}'+
     '</style>'+
   '</head><body><div class="page">'+
