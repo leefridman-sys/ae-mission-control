@@ -1579,7 +1579,7 @@ function buildExecBriefPage(b){
   // Stacked dashboard — 3 DIFFERENT screens fanning from top-left, clipped cleanly
   var img2=EB_PLATFORM_IMG2||'';var img3=EB_PLATFORM_IMG3||'';
   var stackHtml=(platformSrc&&img2&&img3)?
-    '<div style="position:relative;width:248px;height:148px;flex-shrink:0;margin-left:8px;overflow:hidden">'+
+    '<div class="eb-stack" style="position:relative;width:248px;height:148px;flex-shrink:0;margin-left:8px;overflow:hidden">'+
       // Back — Capacity, rotate from top-left corner
       '<div style="position:absolute;top:4px;left:4px;width:210px;height:130px;border-radius:6px;border:1px solid #d4dedd;overflow:hidden;transform:rotate(4deg);transform-origin:top left;box-shadow:0 2px 6px rgba(0,0,0,.1);z-index:1">'+
         '<img src="'+img3+'" style="width:100%;height:100%;object-fit:cover;object-position:top left">'+
@@ -1604,7 +1604,19 @@ function buildExecBriefPage(b){
       'body{font-family:"DM Sans",sans-serif;background:#fff;color:#1a1714;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
       '.page{max-width:860px;margin:0 auto;padding:28px 36px 32px;}'+
       '@page{margin:0.5in 0.6in;size:letter;}'+
-      '@media print{.page{padding:0;max-width:100%;}}'+
+      '@media print{'+
+        '.page{padding:0;max-width:100%;}'+
+        // Flatten the fanned dashboard stack for clean print:
+        // shrink parent to match the front layer (so there is no leftover frame),
+        // hide the two rotated back layers, and strip every visual decoration
+        // from the front layer so only the dashboard screenshot itself renders.
+        '.eb-stack{width:210px !important;height:130px !important;overflow:visible !important;background:transparent !important;box-shadow:none !important;}'+
+        '.eb-stack > div{box-shadow:none !important;border:none !important;transform:none !important;border-radius:4px !important;}'+
+        '.eb-stack > div:nth-child(1),'+
+        '.eb-stack > div:nth-child(2){display:none !important;}'+
+        '.eb-stack > div:nth-child(3){position:static !important;width:210px !important;height:130px !important;}'+
+        '.eb-stack > div:nth-child(3) img{display:block !important;}'+
+      '}'+
     '</style>'+
   '</head><body><div class="page">'+
 
