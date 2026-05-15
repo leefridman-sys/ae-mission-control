@@ -1250,6 +1250,7 @@ function buildExecBriefHTML(){
       '<button id="eb-generate-btn" onclick="generateExecBrief()" class="btn" style="width:100%;padding:10px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px">'+
         '<span>📄</span><span>Generate Executive Brief</span>'+
       '</button>'+
+      '<div id="eb-inline-update" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)"></div>'+
     '</div>'+
     '</div>'+
     '<div>'+
@@ -1439,9 +1440,89 @@ function generateExecBrief(){
     renderSavedExecBriefs();
     if(btn){btn.disabled=false;btn.innerHTML='<span>📄</span><span>Generate Executive Brief</span>';}
     openExecBriefInBrowser(entry.id);
+    renderInlineUpdate(entry.id);
   }).catch(function(e){
     showToast('Error: '+e.message);
     if(btn){btn.disabled=false;btn.innerHTML='<span>📄</span><span>Generate Executive Brief</span>';}
+  });
+}
+
+// ── Inline update panel (post-generation) ─────────────────────
+function renderInlineUpdate(briefId){
+  var el=document.getElementById('eb-inline-update');
+  if(!el)return;
+  var briefs=loadSavedExecBriefs();
+  var b=briefs.find(function(x){return x.id===briefId;});
+  if(!b)return;
+  var log=(b.updateLog||[]);
+  var logHtml=log.length
+    ? '<div style="margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem">'+
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.5rem">Update history</div>'+
+        log.slice().reverse().map(function(u){
+          return'<div style="display:flex;gap:8px;font-size:13px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border)">'+
+            '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace;flex-shrink:0;min-width:60px">'+esc(u.ts||'')+'</span>'+
+            '<span style="flex:1;line-height:1.5">'+esc(u.req)+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'
+    : '';
+  el.style.display='block';
+  el.innerHTML=
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.6rem;gap:10px">'+
+      '<div>'+
+        '<div style="font-size:14px;font-weight:600;color:var(--accent2)">✦ Brief update requests</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px;max-width:520px;line-height:1.55">Type any change — Claude updates the brief in place. Be specific (which section, what should change) or general ("tighten the language"). No need to regenerate from the transcript.</div>'+
+      '</div>'+
+      '<button class="btn-ghost btn-sm" onclick="openExecBriefInBrowser(\''+briefId+'\')" style="font-size:12px;flex-shrink:0">View updated brief ↗</button>'+
+    '</div>'+
+    '<textarea id="eb-inline-input" rows="3" placeholder="e.g. Make the Why Now punchier. Update the Recommended Next Steps to: 1) Maturity Assessment (no-cost diagnostic) and 2) Executive Demo (contingent on greenlight)." style="width:100%;padding:.55rem .75rem;font-size:14px;font-family:DM Sans,sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--bg);resize:vertical;line-height:1.55;color:var(--text);box-sizing:border-box" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){submitInlineUpdate(\''+briefId+'\');event.preventDefault();}"></textarea>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.55rem;gap:8px;flex-wrap:wrap">'+
+      '<div style="display:flex;gap:5px;flex-wrap:wrap">'+
+        '<button class="btn-ghost btn-sm" onclick="document.getElementById(\'eb-inline-input\').value=\'Tighten the language throughout — make it crisper.\'" style="font-size:11px;padding:4px 9px">Tighten</button>'+
+        '<button class="btn-ghost btn-sm" onclick="document.getElementById(\'eb-inline-input\').value=\'Make the Why Now sharper — punchier and harder to defer.\'" style="font-size:11px;padding:4px 9px">Punchier Why Now</button>'+
+        '<button class="btn-ghost btn-sm" onclick="document.getElementById(\'eb-inline-input\').value=\'Update Recommended Next Steps to: (1) Maturity Assessment — no-cost diagnostic tool to identify opportunities for improvement; (2) Executive Demo — assuming greenlight to continue exploring the investment.\'" style="font-size:11px;padding:4px 9px">New next steps</button>'+
+        '<button class="btn-ghost btn-sm" onclick="document.getElementById(\'eb-inline-input\').value=\'Add an extra transformation row reflecting another specific pain mentioned in the discovery.\'" style="font-size:11px;padding:4px 9px">+ Transformation row</button>'+
+      '</div>'+
+      '<button id="eb-inline-submit" onclick="submitInlineUpdate(\''+briefId+'\')" class="btn" style="padding:7px 14px;font-size:13px">Apply update <span style="opacity:.7;margin-left:4px">⌘↵</span></button>'+
+    '</div>'+
+    logHtml;
+}
+
+function submitInlineUpdate(briefId){
+  var input=document.getElementById('eb-inline-input');
+  if(!input)return;
+  var req=input.value.trim();
+  if(!req){showToast('Type a change first');return;}
+  var briefs=loadSavedExecBriefs();
+  var b=briefs.find(function(x){return x.id===briefId;});
+  if(!b){showToast('Brief not found');return;}
+  var btn=document.getElementById('eb-inline-submit');
+  if(btn){btn.disabled=true;btn.innerHTML='Applying…';}
+
+  var systemPrompt='You are editing a Cognota executive brief for '+esc(b.company)+'. The user will describe what to change. Make ONLY the requested change — leave everything else exactly as-is.\n\nCURRENT BRIEF JSON:\n'+JSON.stringify(b.data,null,2)+'\n\nReturn the COMPLETE updated JSON object with the change applied. RETURN ONLY VALID JSON — no explanation, no markdown.';
+
+  fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-6',max_tokens:2000,stream:false,
+    system:systemPrompt,
+    messages:[{role:'user',content:req}]
+  })}).then(function(r){return r.json();}).then(function(res){
+    var raw=((res.content&&res.content[0]&&res.content[0].text)||'').trim();
+    var updated=null;
+    try{updated=JSON.parse(raw);}catch(e){var m=raw.match(/\{[\s\S]*\}/);if(m)try{updated=JSON.parse(m[0]);}catch(e2){}}
+    if(updated){
+      b.data=updated;
+      b.updateLog=(b.updateLog||[]).concat([{req:req,ts:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}]);
+      saveExecBriefs(briefs);
+      input.value='';
+      renderInlineUpdate(briefId);
+      showToast('Brief updated — click "View updated brief ↗" to see changes');
+    } else {
+      showToast('Could not parse response — try rephrasing');
+    }
+    if(btn){btn.disabled=false;btn.innerHTML='Apply update <span style="opacity:.7;margin-left:4px">⌘↵</span>';}
+  }).catch(function(e){
+    showToast('Error: '+(e.message||'failed to update'));
+    if(btn){btn.disabled=false;btn.innerHTML='Apply update <span style="opacity:.7;margin-left:4px">⌘↵</span>';}
   });
 }
 
